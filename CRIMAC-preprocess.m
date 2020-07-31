@@ -1,0 +1,81 @@
+% This script reads the metadata, raw acoustic data and the labels, convert the 
+% input data to a mat file that include both raw data and labels. The script
+% also interpolates the data into a common grid.
+%
+% Dependencies:
+% https://github.com/nilsolav/LSSSreader/src
+% https://github.com/nilsolav/NMDAPIreader
+% https://github.com/nilsolav/readEKraw
+%
+
+% CRIMAC project, Nils Olav Handegard
+
+% Plotting frequency
+% Which frequency to use when generating the plots
+par.plot_frequency='200';
+
+% Which range vector to use when interpolating into the common grid
+par.range_frequency = 200;
+
+par.bottomoutlier = 95; % Assumes less than 5 percent outliers in depthdata
+par.depthoffset = 15;% Add par.depthoffset m below seafloor
+
+par.dz = 0.188799999523326;
+par.dzdiff = .05;
+
+% Survey data directory per year
+%% TEMPORARY for testing purposes
+dd_data_in = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\EK60_RAWDATA';
+dd_data_work = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\LSSS\WORK';
+dd_data_out = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap';
+
+%% \TEMPORARY
+    
+% Get the file list
+raw0 = dir(fullfile(dd_data_in,'*.raw'));
+    
+% Generate status file if it is missing
+statusfile = fullfile(dd_data_out,'datastatus.mat');
+if ~exist(statusfile)
+    status = zeros(length(raw0),1);
+    save(statusfile,'status')
+end
+
+% Loop over file pairs
+for f=1:length(raw0)
+    load(statusfile)
+    % Create file names (in and out)
+    [~,fn,~]=fileparts(raw0(f).name);
+    % Run files that have not been run earlier
+    qrun = status(f)<=0;
+    % Get files
+    bot = fullfile(dd_data_year,[fn,'.bot']);
+    raw = fullfile(dd_data_year,[fn,'.raw']);
+    snap = fullfile(dd_data_year,[fn,'.work']);
+    % Output files
+    mat = fullfile(dd_data_out,[fn,'.mat']);
+    png = fullfile(dd_data_out,[fn,'.png']);
+    png_I = fullfile(dd_data_out,[fn,'_I.png']);
+    png_I2 = fullfile(dd_data_out,[fn,'_I2.png']);
+    if qrun
+        disp([datestr(now),'; running ; ',fullfile(dd_data_year,fn)])
+        % Generate figures and save clean data file
+        try
+            generate_mat_files(snap,raw,bot,png,png_I,png_I2,mat,par)
+            close gcf
+            disp([datestr(now),'; success ; ',fn])
+            status(f)=now;
+        catch ME
+            disp([datestr(now),'; failed  ; ',fn])
+            status(f)=-now;
+            disp([ME.identifier]);
+            disp([ME.message]);
+            for MEi = 1:length(ME.stack)
+                disp(ME.stack(MEi))
+            end
+        end
+    else
+        disp([datestr(now),'; exists ; ',fn])
+    end
+    save(statusfile,'status')
+end
