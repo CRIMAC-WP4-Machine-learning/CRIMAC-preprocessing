@@ -51,7 +51,7 @@ data_dtype = 'float32'
 label_dtype = 'int16'
 
 # Set local environment variables
-filedir = '/dataout/'
+filedir = '/dataout'
 # filedir = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap'
 
 
@@ -92,7 +92,6 @@ def save_data(in_file, outfolder, overwrite=False):
     save_pickle(mat['sv'][:, :, 0].shape, 'shape', out_folder)
     save_pickle(mat['depths'], 'depths', out_folder)
     save_pickle(mat['heave'], 'heave', out_folder)
-
     # Make list of objects
     objects = []
     indexes = np.indices(mat['I'].shape).transpose([1, 2, 0])
@@ -121,14 +120,16 @@ def save_data(in_file, outfolder, overwrite=False):
                 object['labeled_as_segmentation'] = area_of_bnd_box != object[
                     'n_pixels']
                 objects.append(object)
-
     save_pickle(objects, 'objects', out_folder)
     # save_pickle(len(objects), 'n_objects', out_folder)
     print(' -', str(len(objects)), 'objects found')
 
 
 # Loop through matlab files and save to numpy memory maps
-for file in os.listdir(filedir):
+fd = os.listdir(filedir)
+if not fd:
+    print("Directiry does not exist, check docker mappings.")
+for file in fd:
     if file.endswith(".mat") and 'datastatus' not in file:
         # Make file names
         filename, file_extension = os.path.splitext(file)
