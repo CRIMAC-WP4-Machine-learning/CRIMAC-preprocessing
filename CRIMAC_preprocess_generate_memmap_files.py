@@ -37,7 +37,6 @@
 # (C) COGMAR/CRIMAC. Anders, Nils Olav and Olav
 
 # Import libraries
-import os
 import numpy as np
 import scipy.io as spio
 import pickle
@@ -51,8 +50,8 @@ data_dtype = 'float32'
 label_dtype = 'int16'
 
 # Set local environment variables
-# path_to_mat_files = '/dataout/'
-filedir = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap'
+filedir = '/dataout/'
+# filedir = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap'
 
 
 # Function for saving memmory maps
