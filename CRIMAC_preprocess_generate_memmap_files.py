@@ -93,6 +93,39 @@ def save_data(in_file, outfolder, overwrite=False):
     save_pickle(mat['depths'], 'depths', out_folder)
     save_pickle(mat['heave'], 'heave', out_folder)
 
+    # Make list of objects
+    objects = []
+    indexes = np.indices(mat['I'].shape).transpose([1, 2, 0])
+    for fish_type_ind in np.unique(mat['I']):
+        if fish_type_ind != 0:
+            # Do connected components analysis
+            labeled_img, n_components = scipy.ndimage.label(
+                mat['I'] == fish_type_ind)
+            # Loop through components
+            for i in range(1, n_components+1):
+                object = {}
+                # Collect indexes for component
+                indexes_for_components = indexes[labeled_img == i]
+                # Collect data + metadata
+                object['fish_type_index'] = fish_type_ind
+                object['indexes'] = indexes_for_components
+                object['n_pixels'] = indexes_for_components.shape[0]
+                object['bounding_box'] = [np.min(
+                    indexes_for_components[:, 0]), np.max(
+                        indexes_for_components[:, 0]), np.min(
+                            indexes_for_components[:, 1]), np.max(
+                                indexes_for_components[:, 1])]
+                area_of_bnd_box = (
+                    object['bounding_box'][1]-object['bounding_box'][0]+1) * (
+                        object['bounding_box'][3]-object['bounding_box'][2]+1)
+                object['labeled_as_segmentation'] = area_of_bnd_box != object[
+                    'n_pixels']
+                objects.append(object)
+
+    save_pickle(objects, 'objects', out_folder)
+    # save_pickle(len(objects), 'n_objects', out_folder)
+    print(' -', str(len(objects)), 'objects found')
+
 
 # Loop through matlab files and save to numpy memory maps
 for file in os.listdir(filedir):
