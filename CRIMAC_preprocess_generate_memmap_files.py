@@ -42,6 +42,7 @@ import scipy.io as spio
 import pickle
 import scipy.ndimage
 import ntpath
+import os
 
 # Parameters
 overwrite = False
