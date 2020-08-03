@@ -1,4 +1,4 @@
-function CRIMAC_preprocess(plot_frequency)
+function CRIMAC_preprocess(plot_frequency,plt)
 % This script reads the metadata, raw acoustic data and the labels, convert the 
 % input data to a mat file that include both raw data and labels. The script
 % also interpolates the data into a common grid.
@@ -12,6 +12,7 @@ function CRIMAC_preprocess(plot_frequency)
 % CRIMAC project, Nils Olav Handegard
 if nargin==0
     plot_frequency=200;
+    plt=false;
 end
 % Plotting frequency
 % Which frequency to use when generating the plots
@@ -62,14 +63,21 @@ for f=1:length(raw0)
     snap = fullfile(dd_data_work,[fn,'.work']);
     % Output files
     mat = fullfile(dd_data_out,[fn,'.mat']);
-    png = fullfile(dd_data_out,[fn,'.png']);
-    png_I = fullfile(dd_data_out,[fn,'_I.png']);
-    png_I2 = fullfile(dd_data_out,[fn,'_I2.png']);
+    if plt
+        png = fullfile(dd_data_out,[fn,'.png']);
+        png_I = fullfile(dd_data_out,[fn,'_I.png']);
+        png_I2 = fullfile(dd_data_out,[fn,'_I2.png']);
+    else
+        png=[];
+        png_I =[];
+        png_I2 =[];
+    end
+    
     if qrun
         disp([datestr(now),'; running ; ',fullfile(dd_data_out,fn)])
         % Generate figures and save clean data file
         if ~exist(snap,'file')
-            warning(['Missing file interpretation:',snap])
+            disp(['No interpretation file: ',snap])
             snap=[];
         end
         fexist(raw)

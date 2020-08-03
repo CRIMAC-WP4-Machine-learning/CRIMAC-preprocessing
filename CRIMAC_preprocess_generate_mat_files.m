@@ -15,7 +15,7 @@ function CRIMAC_preprocess_generate_mat_files(snap,raw,bot,png,png_I,png_I2,datf
 % Input:
 % snap : Full path snap file
 % raw  : Full path to the raw file
-% png  : Full path to the image file
+% png  : Full path to the image file (can be empty)
 % datfile    : full path to the mat output file
 % par.plot_frequency      : Plot frequency
 % par.range_frequency rangeF : The frequency for the range resolution on the final data
@@ -210,33 +210,8 @@ if ~isempty(datfile)
     save(datfile,'-v7','I','sv','F','t','range','depths','heave')
     
     %% Write the label figure
-    fn=figure;
-    hold on
-    axis ij
-    % Categories:
-    IDstr = {'','Sandeel','Other','Possible s.e.','0-group'};
-    ID  = [27 1 6009 5027];
-    Ipl = I;
-    Ipl(I==27)   = 1;
-    Ipl(I==1)    = 2;
-    Ipl(I==6009) = 3;
-    Ipl(I==5027) = 4;
-    % Plot
-    imagesc(1:length(t),range,Ipl,[-.5 4.5])
-    cmap = [1 1 1;1 0 0;0 1 0;0 0 1; 0 1 1];
-    colormap(cmap)
-    h=colorbar;
-    set(h,'Ticks',[0 1 2 3 4],'TickLabels',IDstr)
-    xlabel('ping')
-    ylabel('range (m)')
-    ch = find(F==(str2num(f)));
-    plot(bottom.pings.bottomdepth(ch,:));
-    axis tight
-    print(png_I,'-dpng')
-    close(fn)
-    %% Write the label figure AND the raw data
-    for fn=1:length(F)
-        fi=figure;
+    if plt
+        fn=figure;
         hold on
         axis ij
         % Categories:
@@ -248,17 +223,44 @@ if ~isempty(datfile)
         Ipl(I==6009) = 3;
         Ipl(I==5027) = 4;
         % Plot
-        %imagesc(1:length(t),range,Ipl,[-.5 4.5])
-        dum = 10*log10(squeeze(sv(:,:,fn)));
-        dum(Ipl~=0)=max(dum(:))+10;
-        imagesc(1:length(t),range,dum)
-        colormap([parula;[1 0 0]])
-        xlabel('time')
+        imagesc(1:length(t),range,Ipl,[-.5 4.5])
+        cmap = [1 1 1;1 0 0;0 1 0;0 0 1; 0 1 1];
+        colormap(cmap)
+        h=colorbar;
+        set(h,'Ticks',[0 1 2 3 4],'TickLabels',IDstr)
+        xlabel('ping')
         ylabel('range (m)')
-        plot(1:length(t),depths(:,fn),'k');
+        ch = find(F==(str2num(f)));
+        plot(bottom.pings.bottomdepth(ch,:));
         axis tight
-        print([png_I2(1:end-4),'_F',num2str(F(fn)),'kHz.png'],'-dpng')
-        close(fi)
+        print(png_I,'-dpng')
+        close(fn)
+        %% Write the label figure AND the raw data
+        for fn=1:length(F)
+            fi=figure;
+            hold on
+            axis ij
+            % Categories:
+            IDstr = {'','Sandeel','Other','Possible s.e.','0-group'};
+            ID  = [27 1 6009 5027];
+            Ipl = I;
+            Ipl(I==27)   = 1;
+            Ipl(I==1)    = 2;
+            Ipl(I==6009) = 3;
+            Ipl(I==5027) = 4;
+            % Plot
+            %imagesc(1:length(t),range,Ipl,[-.5 4.5])
+            dum = 10*log10(squeeze(sv(:,:,fn)));
+            dum(Ipl~=0)=max(dum(:))+10;
+            imagesc(1:length(t),range,dum)
+            colormap([parula;[1 0 0]])
+            xlabel('time')
+            ylabel('range (m)')
+            plot(1:length(t),depths(:,fn),'k');
+            axis tight
+            print([png_I2(1:end-4),'_F',num2str(F(fn)),'kHz.png'],'-dpng')
+            close(fi)
+        end
     end
     
 end
