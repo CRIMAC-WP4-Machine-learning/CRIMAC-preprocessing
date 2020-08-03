@@ -1,7 +1,7 @@
 # This repository contain the code to preprocess acosutic data for the CRIMAC project.
 
 # It is slightly circular since you need to clone this repos to get the Dockerfile and
-# then the dockerfilt clones the repos inside the docker image.
+# then the dockerfile clones the repos inside the Dockerfile.
 
 # For testing you can clone the testdata:
 git clone https://github.com/nilsolav/LSSS-label-versioning
@@ -12,9 +12,12 @@ docker build --tag crimacwp4-preprocessing:test .
 
 # Generate and run the container. The -v flag should point to a survey in your file
 # system, and the -p flag should be the port for the jupyter-notebook.
+# Two directories needs to be linked:
+# \datain\ should be mapped to the data directory where the .raw, .bot and .idx files are located
+% \dataout\ should be mapped to the directory where the memmap files are located
 docker run -it --name pytorchacosutic -p 8989:8989 -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\:/data/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\memmap:/dataout/ crimacwp4-preprocessing:test
-
-# Run notebook
+ 
+# Run notebook (inside the docker image when using the -it flag)
 jupyter-notebook --ip=0.0.0.0 --port=8989 --no-browser --allow-root
 
 
