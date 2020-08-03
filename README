@@ -7,6 +7,12 @@
 git clone https://github.com/nilsolav/LSSS-label-versioning
 # The raw data have to be copied from pallas: /scratch/nilsolav
 
+# Build the matlab standalone
+# Get dependencies
+git clone https://github.com/nilsolav/LSSSreader/src
+git clone https://github.com/nilsolav/NMDAPIreader
+git clone https://github.com/nilsolav/readEKraw
+
 # Build the docker image
 docker build --tag crimacwp4-preprocessing:test .
 
@@ -14,11 +20,9 @@ docker build --tag crimacwp4-preprocessing:test .
 # system, and the -p flag should be the port for the jupyter-notebook.
 # Two directories needs to be linked:
 # \datain\ should be mapped to the data directory where the .raw, .bot and .idx files are located
-% \dataout\ should be mapped to the directory where the memmap files are located
-docker run -it --name pytorchacosutic -p 8989:8989 -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\:/data/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\memmap:/dataout/ crimacwp4-preprocessing:test
- 
-# Run notebook (inside the docker image when using the -it flag)
-jupyter-notebook --ip=0.0.0.0 --port=8989 --no-browser --allow-root
+# \datawork\ should be mapped to the directory where the work files are located
+# \dataout\ should be mapped to the directory where the memmap files are located
 
+docker run -it --name pytorchacosutic -p 8989:8989 -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\EK60_RAWDATA:/datain/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap:/dataout/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\LSSS\WORK\:/datawork/ crimacwp4-preprocessing:test
 
 
