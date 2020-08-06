@@ -22,7 +22,7 @@ function CRIMAC_preprocess_generate_mat_files(snap,raw,bot,png,png_I,png_I2,datf
 %
 
 % COGMAR project, Nils Olav Handegard
-
+plt=false;
 f = par.plot_frequency;
 
 % Read snap file
