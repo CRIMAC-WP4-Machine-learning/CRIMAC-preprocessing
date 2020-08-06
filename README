@@ -22,7 +22,7 @@ docker build --tag crimacwp4-preprocessing:test .
 # \datain\ should be mapped to the data directory where the .raw, .bot and .idx files are located
 # \datawork\ should be mapped to the directory where the work files are located
 # \dataout\ should be mapped to the directory where the memmap files are located
-docker run -it --name pytorchacosutic -p 8989:8989 -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\EK60_RAWDATA:/datain/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap:/dataout/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\LSSS\WORK\:/datawork/ crimacwp4-preprocessing:test
+docker run -it --name pytorchacoustic -p 8989:8989 -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\EK60_RAWDATA:/datain/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap:/dataout/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\LSSS\WORK\:/datawork/ crimacwp4-preprocessing:test
 
 # Remove the stopped container
 docker container prune

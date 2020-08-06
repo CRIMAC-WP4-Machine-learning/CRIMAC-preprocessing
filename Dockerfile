@@ -2,11 +2,9 @@ FROM python:3
 
 # Install linux applications
 RUN apt-get update && apt-get install --yes \
-    fonts-powerline \
     curl \
     zsh \
-    git \
-    emacs
+    git
 
 # Install matlab runtime
 RUN mkdir /mcr-install && \
@@ -35,7 +33,6 @@ RUN git clone https://github.com/CRIMAC-WP4-Machine-learning/CRIMAC-preprocessin
 # ENV LD_LIBRARY_PATH /opt/mcr/v98/runtime/glnxa64:/opt/mcr/v98/bin/glnxa64:/opt/mcr/v98/sys/os/glnxa64:/opt/mcr/v98/extern/bin/glnxa64
 # ENV XAPPLRESDIR /opt/mcr/v93/X11/app-defaults
 
-#CMD python3 /CRIMAC-preprocessing/CRIMAC_preprocess_generate_memmap_files.py
-
-CMD zsh
-
+RUN chmod 755 /CRIMAC-preprocessing/masterscript.sh
+#CMD zsh
+CMD /CRIMAC-preprocessing/masterscript.sh
