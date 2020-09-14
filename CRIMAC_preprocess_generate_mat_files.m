@@ -83,7 +83,8 @@ if ~isempty(datfile)
     Fi=find(F==par.range_frequency);
     
     heave = raw_data.pings(Fi).heave;
-
+    trdepth = raw_data.pings(Fi).transducerdepth;
+    
     % Find the ping interval for the main frequency
     % Occasionally there are a negative time diff
     % in the raw data, hence the 'abs' operator.
@@ -207,7 +208,7 @@ if ~isempty(datfile)
     depths = interp1(bottom.pings.time',bottom.pings.bottomdepth',t);
 
     % Save the data to the mat file
-    save(datfile,'-v7','I','sv','F','t','range','depths','heave')
+    save(datfile,'-v7','I','sv','F','t','range','depths','heave','trdepth')
     
     %% Write the label figure
     if plt

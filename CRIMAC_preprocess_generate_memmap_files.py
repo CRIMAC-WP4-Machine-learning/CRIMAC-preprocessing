@@ -33,6 +33,7 @@
 # range_vector.pkl
 # shape.pkl
 # time_vector.pkl
+# transducerdepth.pkl    Transducer depths
 
 # (C) COGMAR/CRIMAC. Anders, Nils Olav and Olav
 
@@ -92,6 +93,7 @@ def save_data(in_file, outfolder, overwrite=False):
     save_pickle(mat['sv'][:, :, 0].shape, 'shape', out_folder)
     save_pickle(mat['depths'], 'depths', out_folder)
     save_pickle(mat['heave'], 'heave', out_folder)
+    save_pickle(mat['trdepth'], 'trdepth', out_folder)
     # Make list of objects
     objects = []
     indexes = np.indices(mat['I'].shape).transpose([1, 2, 0])
