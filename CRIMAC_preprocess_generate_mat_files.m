@@ -60,10 +60,10 @@ end
 maxrange = prctile(bottom.pings.bottomdepth(:),par.bottomoutlier)+par.depthoffset; % Assumes less than 2 percent outliers
 
 %% Plot result
+td = double(median(raw_data.pings(ch).transducerdepth));
 if ~isempty(png)
     ch = find(F==(str2num(f)));
     rangeind = data.pings(ch).range < maxrange;
-    td = double(median(raw_data.pings(ch).transducerdepth));
     [fh, ih] = readEKRaw_SimpleEchogram(10*log10(data.pings(ch).sv(rangeind,:)), 1:length(data.pings(ch).time), data.pings(ch).range(rangeind));
     % Plot the interpretation mask
     hold on
