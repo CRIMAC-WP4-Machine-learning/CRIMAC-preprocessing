@@ -1,4 +1,4 @@
-function CRIMAC_preprocess(plot_frequency,plt)
+function CRIMAC_preprocess(survey,dd_data_in,dd_data_work,dd_data_out,plot_frequency,plt)
 % This script reads the metadata, raw acoustic data and the labels, convert the 
 % input data to a mat file that include both raw data and labels. The script
 % also interpolates the data into a common grid.
@@ -10,7 +10,7 @@ function CRIMAC_preprocess(plot_frequency,plt)
 %
 
 % CRIMAC project, Nils Olav Handegard
-if nargin==0
+if nargin<5
     plot_frequency=200;
     plt=false;
 end
@@ -28,14 +28,18 @@ par.dzdiff = .05;
 
 % Survey data directory per year
 %% TEMPORARY for testing purposes
-if isunix
+if nargin == 0
+  if isunix
     dd_data_in = '/datain/';
     dd_data_work = '/datawork/';
     dd_data_out = '/dataout/';
-else % For testing purposes on PC
+    survey = ''
+  else % For testing purposes on PC
     dd_data_in = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\EK60_RAWDATA';
     dd_data_work = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\LSSS\WORK';
     dd_data_out = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap';
+    survey = 'S2017838'
+  end
 end
 
 %% \TEMPORARY
@@ -44,7 +48,8 @@ end
 raw0 = dir(fullfile(dd_data_in,'*.raw'));
     
 % Generate status file if it is missing
-statusfile = fullfile(dd_data_out,'datastatus.mat');
+statusfile = fullfile(dd_data_out,[survey,'datastatus.mat']);
+
 if ~exist(statusfile)
     status = zeros(length(raw0),1);
     save(statusfile,'status')
@@ -77,14 +82,14 @@ for f=1:length(raw0)
         disp([datestr(now),'; running ; ',fullfile(dd_data_out,fn)])
         % Generate figures and save clean data file
         if ~exist(snap,'file')
-            disp(['No interpretation file: ',snap])
-            snap=[];
+          disp('No interpretation file')
+          snap=[];
         end
         fexist(raw)
         fexist(bot)
         try
             CRIMAC_preprocess_generate_mat_files(snap,raw,bot,png,png_I,png_I2,mat,par)
-            close gcf
+            %close gcf
             disp([datestr(now),'; success ; ',fn])
             status(f)=now;
         catch ME

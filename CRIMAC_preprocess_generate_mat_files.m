@@ -36,7 +36,7 @@ raw_cal = readEKRaw_GetCalParms(raw_header, raw_data);
 data = readEKRaw_Power2Sv(raw_data,raw_cal,'Linear',true);
 
 % Get depth information
-[~, bottom, ~] = readEKBot(bot,raw_cal,'rawData',raw);
+[~, bottom, ~] = readEKBot(bot,raw_cal,raw_data);
 % Get the main frequency
 for ch = 1:length(raw_data.pings)
     F(ch)=raw_data.pings(ch).frequency(1)/1000;
