@@ -82,8 +82,14 @@ for f=1:length(raw0)
         disp([datestr(now),'; running ; ',fullfile(dd_data_out,fn)])
         % Generate figures and save clean data file
         if ~exist(snap,'file')
-          disp('No interpretation file')
-          snap=[];
+	   [wd,wrk,~] = fileparts(snap);
+	   snap = fullfile(wd,[wrk,'.snap']);
+	   if exist(snap,'file')
+             disp('Using snap file instead of work')
+	   else
+             disp(['No interpretation file: ',snap])
+             snap=[];
+	   end
         end
         fexist(raw)
         fexist(bot)
