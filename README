@@ -22,7 +22,10 @@ docker build --tag crimacwp4-preprocessing:test .
 # \datain\ should be mapped to the data directory where the .raw, .bot and .idx files are located
 # \datawork\ should be mapped to the directory where the work files are located
 # \dataout\ should be mapped to the directory where the memmap files are located
-docker run -it --name pytorchacoustic -p 8989:8989 -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\EK60_RAWDATA:/datain/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap:/dataout/ -v D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\LSSS\WORK\:/datawork/ crimacwp4-preprocessing:test
+docker run -it --name pytorchacoustic -p 8989:8989 -v D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\EK60\EK60_RAWDATA:/datain/ -v D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\memmap:/dataout/ -v D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\LSSS\WORK\:/datawork/ --rm crimacwp4-preprocessing:test
 
-# Remove the stopped container
-docker container prune
+
+podman run -it -p 8989:8989 --security-opt=label=disable --hooks-dir /usr/share/containers/oci/hooks.d -p 8989:8989 -v /scratch/nilsolav/LSSS-label-versioning/S2016837/ACOUSTIC/EK60/EK60_RAWDATA:/datain/ -v /scratch/nilsolav/LSSS-label-versioning/S2016837/ACOUSTIC/LSSS/WORK:/datawork/ -v /scratch/nilsolav/LSSS-label-versioning/S2016837/ACOUSTIC/LSSS/memmap:/dataout/ shofus/crimacwp4-preprocessing
+
+
+

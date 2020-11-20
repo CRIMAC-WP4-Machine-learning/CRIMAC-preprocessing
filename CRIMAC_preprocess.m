@@ -33,10 +33,11 @@ if isunix
     dd_data_work = '/datawork/';
     dd_data_out = '/dataout/';
 else % For testing purposes on PC
-    dd_data_in = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\EK60\EK60_RAWDATA';
-    dd_data_work = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\LSSS\WORK';
-    dd_data_out = 'D:\DATA\LSSS-label-versioning\S2017838\ACOUSTIC\memmap';
+    dd_data_in = 'D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\EK60\EK60_RAWDATA';
+    dd_data_work = 'D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\LSSS\WORK';
+    dd_data_out = 'D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\memmap';
 end
+
 
 %% \TEMPORARY
     
