@@ -1,30 +1,27 @@
-# This repository contain the code to preprocess acosutic data for the CRIMAC project.
+# This repository contain the v2 code to preprocess acosutic data for the CRIMAC project.
 
 # It is slightly circular since you need to clone this repos to get the Dockerfile and
 # then the dockerfile clones the repos inside the Dockerfile.
 
 # For testing you can clone the testdata:
 git clone https://github.com/nilsolav/LSSS-label-versioning
-# The raw data have to be copied from pallas: /scratch/nilsolav
+# The raw data have to be downloaded from the Kongsberg Azure server (download the LSSS-label-versioning data into the cloned directiry)
 
-# Build the matlab standalone
-# Get dependencies
-git clone https://github.com/nilsolav/LSSSreader/src
-git clone https://github.com/nilsolav/NMDAPIreader
-git clone https://github.com/nilsolav/readEKraw
+# If you would like to test the code outside docker you should manually follow the steps in the Dockerfile
 
-# Build the docker image
+# Build the docker image (you need to run this in the folder where the Dockerfile is located)
 docker build --tag crimacwp4-preprocessing:test .
 
-# Generate and run the container. The -v flag should point to a survey in your file
-# system, and the -p flag should be the port for the jupyter-notebook.
+# Generate and run the container. The -v flag should be used to map folders, and the -p flag should be the port for the jupyter-notebook.
 # Two directories needs to be linked:
 # \datain\ should be mapped to the data directory where the .raw, .bot and .idx files are located
 # \datawork\ should be mapped to the directory where the work files are located
-# \dataout\ should be mapped to the directory where the memmap files are located
+# \dataout\ should be mapped to the directory where the netcdf will be stored
+
+# Example (change the paths for this to run)
 docker run -it --name pytorchacoustic -p 8989:8989 -v D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\EK60\EK60_RAWDATA:/datain/ -v D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\memmap:/dataout/ -v D:\DATA\LSSS-label-versioning\S2016837\ACOUSTIC\LSSS\WORK\:/datawork/ --rm crimacwp4-preprocessing:test
 
-
+# If you have to use podman:
 podman run -it -p 8989:8989 --security-opt=label=disable --hooks-dir /usr/share/containers/oci/hooks.d -p 8989:8989 -v /scratch/nilsolav/LSSS-label-versioning/S2016837/ACOUSTIC/EK60/EK60_RAWDATA:/datain/ -v /scratch/nilsolav/LSSS-label-versioning/S2016837/ACOUSTIC/LSSS/WORK:/datawork/ -v /scratch/nilsolav/LSSS-label-versioning/S2016837/ACOUSTIC/LSSS/memmap:/dataout/ shofus/crimacwp4-preprocessing
 
 

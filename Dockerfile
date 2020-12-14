@@ -6,32 +6,17 @@ RUN apt-get update && apt-get install --yes \
     zsh \
     git
 
-# Install matlab runtime
-RUN mkdir /mcr-install && \
-    mkdir /opt/mcr && \
-    cd /mcr-install && \
-    wget -q https://ssd.mathworks.com/supportfiles/downloads/R2020a/Release/4/deployment_files/installer/complete/glnxa64/MATLAB_Runtime_R2020a_Update_4_glnxa64.zip && \
-    unzip MATLAB_Runtime_R2020a_Update_4_glnxa64.zip && \
-    rm MATLAB_Runtime_R2020a_Update_4_glnxa64.zip && \
-    ./install -destinationFolder /opt/mcr -agreeToLicense yes -mode silent && \
-    cd / && \
-    rm -rf mcr-install
-
 # Install pip and python packages
 RUN pip install --upgrade pip
 RUN pip install numpy scipy
 
 # Clone the preprocessing library
 RUN git clone https://github.com/CRIMAC-WP4-Machine-learning/CRIMAC-preprocessing
+RUN git checkout NOH_pyech
 
-#    wget \
-#    xorg \
-#    apt-get clean && \
-#    rm -rf /var/lib/apt/lists/*
-
-# Matlab runtime environmental variables
-# ENV LD_LIBRARY_PATH /opt/mcr/v98/runtime/glnxa64:/opt/mcr/v98/bin/glnxa64:/opt/mcr/v98/sys/os/glnxa64:/opt/mcr/v98/extern/bin/glnxa64
-# ENV XAPPLRESDIR /opt/mcr/v93/X11/app-defaults
+# Clone pyecholab and switch to the RHT-EK80 branch
+RUN git clone https://github.com/CI-CMG/pyEcholab
+RUN git checkout RHT-EK80
 
 RUN chmod 755 /CRIMAC-preprocessing/masterscript.sh
 #CMD zsh
