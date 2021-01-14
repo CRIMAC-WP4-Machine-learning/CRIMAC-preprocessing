@@ -1,38 +1,21 @@
-FROM python:3
+FROM python:3 as builder
 
-# Install linux applications
-RUN apt-get update && apt-get install --yes \
-    curl \
-    zsh \
-    git
+RUN mkdir /install
+WORKDIR /install
 
-# Install matlab runtime
-RUN mkdir /mcr-install && \
-    mkdir /opt/mcr && \
-    cd /mcr-install && \
-    wget -q https://ssd.mathworks.com/supportfiles/downloads/R2020a/Release/4/deployment_files/installer/complete/glnxa64/MATLAB_Runtime_R2020a_Update_4_glnxa64.zip && \
-    unzip MATLAB_Runtime_R2020a_Update_4_glnxa64.zip && \
-    rm MATLAB_Runtime_R2020a_Update_4_glnxa64.zip && \
-    ./install -destinationFolder /opt/mcr -agreeToLicense yes -mode silent && \
-    cd / && \
-    rm -rf mcr-install
+COPY requirements.txt /requirements.txt
 
-# Install pip and python packages
-RUN pip install --upgrade pip
-RUN pip install numpy scipy
+RUN apt-get update -y && \
+    apt-get install -y git && \
+    pip install --prefix=/install -r /requirements.txt
 
-# Clone the preprocessing library
-RUN git clone https://github.com/CRIMAC-WP4-Machine-learning/CRIMAC-preprocessing
+FROM python:3-slim
 
-#    wget \
-#    xorg \
-#    apt-get clean && \
-#    rm -rf /var/lib/apt/lists/*
+COPY --from=builder /install /usr/local
+COPY CRIMAC_preprocess.py /app/CRIMAC_preprocess.py
 
-# Matlab runtime environmental variables
-# ENV LD_LIBRARY_PATH /opt/mcr/v98/runtime/glnxa64:/opt/mcr/v98/bin/glnxa64:/opt/mcr/v98/sys/os/glnxa64:/opt/mcr/v98/extern/bin/glnxa64
-# ENV XAPPLRESDIR /opt/mcr/v93/X11/app-defaults
+RUN pip3 install lxml /usr/local/src/pyecholab
 
-RUN chmod 755 /CRIMAC-preprocessing/masterscript.sh
-#CMD zsh
-CMD /CRIMAC-preprocessing/masterscript.sh
+WORKDIR /app
+
+CMD ["python3", "/app/CRIMAC_preprocess.py"]

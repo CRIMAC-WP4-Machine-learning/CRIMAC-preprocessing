@@ -1,0 +1,12 @@
+pytz
+future
+zarr
+netCDF4
+dask[array]
+dask[delayed]
+xarray
+numcodecs
+numpy
+matplotlib
+scipy
+-e git+https://github.com/CI-CMG/pyEcholab.git@RHT-EK80#egg=pyEcholab
