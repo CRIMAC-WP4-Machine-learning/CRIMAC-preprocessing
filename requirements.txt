@@ -1,12 +1,15 @@
+lxml
 pytz
 future
 zarr
 netCDF4
 dask[array]
 dask[delayed]
+dask[dataframe]
 xarray
 numcodecs
 numpy
 matplotlib
 scipy
+datashader
 -e git+https://github.com/CI-CMG/pyEcholab.git@RHT-EK80#egg=pyEcholab
