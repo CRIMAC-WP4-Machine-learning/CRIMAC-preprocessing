@@ -1,3 +1,4 @@
+lxml
 pytz
 future
 zarr
@@ -9,4 +10,4 @@ numcodecs
 numpy
 matplotlib
 scipy
--e git+https://github.com/CI-CMG/pyEcholab.git@RHT-EK80#egg=pyEcholab
+git+https://github.com/CI-CMG/pyEcholab.git@RHT-EK80#egg=pyEcholab

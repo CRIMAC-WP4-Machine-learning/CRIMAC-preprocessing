@@ -1,21 +1,19 @@
-FROM python:3 as builder
+FROM clearlinux/numpy-mp as builder
 
 RUN mkdir /install
-WORKDIR /install
 
-COPY requirements.txt /requirements.txt
+COPY requirements.txt /tmp/requirements.txt
 
-RUN apt-get update -y && \
-    apt-get install -y git && \
-    pip install --prefix=/install -r /requirements.txt
+RUN swupd bundle-add c-basic git && \
+    pip install --prefix=/install -r /tmp/requirements.txt
 
-FROM python:3-slim
+FROM clearlinux/numpy-mp
 
-COPY --from=builder /install /usr/local
+COPY --from=builder /install /usr
 COPY CRIMAC_preprocess.py /app/CRIMAC_preprocess.py
 
-RUN pip3 install lxml /usr/local/src/pyecholab
-
 WORKDIR /app
+
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 CMD ["python3", "/app/CRIMAC_preprocess.py"]
