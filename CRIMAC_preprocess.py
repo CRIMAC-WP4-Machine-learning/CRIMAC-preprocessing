@@ -20,6 +20,7 @@ import netCDF4
 
 from matplotlib import pyplot as plt, colors
 from matplotlib.colors import LinearSegmentedColormap, Colormap
+import math
 from numcodecs import Blosc
 
 # From https://github.com/pydata/xarray/issues/1672#issuecomment-685222909
@@ -94,7 +95,7 @@ def ek_read(fname):
         return ek60_obj
 
 # Simple plot function
-def plot_sv(da, minmax, axes, idx):
+def plot_all(ds, out_name, range_res = 600, time_res = 800, interpolate = False):
     # Prepare simrad cmap
     simrad_color_table = [(1, 1, 1),
                                         (0.6235, 0.6235, 0.6235),
@@ -113,11 +114,33 @@ def plot_sv(da, minmax, axes, idx):
                                 ('Simrad', simrad_color_table))
     simrad_cmap.set_bad(color='grey')
 
-    # Use 0.5 bins
-    x_bins = np.arange(da.range.min().round(), da.range.max().round(), 0.5)
-    # Plot using lower resolution
-    da_1 = da.groupby_bins("range", x_bins).mean()
-    da_1.plot(norm=colors.LogNorm(vmin = minmax[0], vmax = minmax[1]), cmap=simrad_cmap, ax=axes[idx])
+    sv = ds.sv
+
+    range_len = len(ds.sv.range)
+    time_len = len(ds.sv.ping_time)
+
+    if range_len > range_res or time_len > time_res:
+        mult_range = math.floor(range_len/range_res)
+        mult_time = math.floor(time_len/time_res)
+
+        if mult_range == 0:
+            mult_range = 1
+
+        if mult_time == 0:
+            mult_time = 1
+
+        if interpolate == False:
+            sv = ds.sv[:, ::mult_time,::mult_range]
+        else:
+            sv = ds.sv.coarsen(range = mult_range, ping_time = mult_time, boundary="trim").mean(skipna=True)
+
+    vmin = sv.min(skipna=True).compute()
+    vmax = sv.max(skipna=True).compute()
+
+    sv.plot(x="ping_time", y="range", row= "frequency", vmin = vmin, vmax = vmax, norm=colors.LogNorm(), cmap=simrad_cmap)
+    plt.gca().invert_yaxis()
+    plt.gcf().set_size_inches(8,11)
+    plt.savefig(out_name + "." + 'png', bbox_inches = 'tight', pad_inches = 0)
 
 def process_data_to_xr(raw_data):
     # Get calibration object
