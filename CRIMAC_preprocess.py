@@ -83,11 +83,12 @@ def ek_detect(fname):
             return None
 
 def ek_read(fname):
-    if ek_detect(fname) == "EK80":
+    ftype = ek_detect(fname)
+    if ftype == "EK80":
         ek80_obj = EK80.EK80()
         ek80_obj.read_raw(fname)
         return ek80_obj
-    elif ek_detect(fname) == "EK60":
+    elif ftype == "EK60":
         ek60_obj = EK60.EK60()
         ek60_obj.read_raw(fname)
         return ek60_obj
