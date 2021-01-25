@@ -10,12 +10,31 @@
 
 ## Options to run
 
-1. Two directories needs to be linked:
+1. Two directories need to be mounted:
 
-    1. `/datain` should be mapped to the data directory where the .raw, .bot and .idx files are located.
-    2. `/dataout` should be mapped to the directory where the memmap files are located.
+    1. `/datain` should be mounted to the data directory where the `.raw` files are located.
+    2. `/dataout` should be mounted to the directory where the output is written.
 
-2. Select output type, zarrand NetCDF4 are supported:
+2. Choose the frequency of the main channel: 
+
+    ```bash
+    --env MAIN_FREQ=38000
+    ```
+
+3. Choose the range determination type: 
+
+    ```bash
+    # Set the maximum range as 500,
+    --env MAX_RANGE_SRC=500
+
+    # or use the the main channel's maximum range from all the files (for historical data),
+    --env MAX_RANGE_SRC=auto
+    
+    # or use the the main channel's maximum range from the first processed file (for historical data)
+    --env MAX_RANGE_SRC=None
+    ```
+
+4. Select output type, `zarr` and `NetCDF4` are supported:
 
     ```bash
     --env OUTPUT_TYPE=zarr
@@ -23,10 +42,16 @@
     --env OUTPUT_TYPE=netcdf4
     ```
 
-3. Select file name output (optional,  default to `out.<zarr / nc>`)
+5. Select file name output (optional,  default to `out.<zarr/nc>`)
 
     ```bash
     --env OUTPUT_NAME=S2020842
+    ```
+
+6. Set if we want a visual overview of the Sv data (in a PNG format image)
+
+    ```bash
+    --env WRITE_PNG=1 # enable or 0 to disable
     ```
 
 ## Example
@@ -38,7 +63,10 @@ docker run -it --name pyechopreprocess \
 -v /localscratch/ibrahim-echo/out:/dataout  \
 --security-opt label=disable \
 --env OUTPUT_TYPE=zarr \
+--env MAIN_FREQ=38000 \
+--env MAX_RANGE_SRC=500 \
 --env OUTPUT_NAME=S2020842 \
+--env WRITE_PNG=0 \
 crimac/test-preprocessor
 
 ```

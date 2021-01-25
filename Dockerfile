@@ -14,8 +14,6 @@ FROM python:3-slim
 COPY --from=builder /install /usr/local
 COPY CRIMAC_preprocess.py /app/CRIMAC_preprocess.py
 
-RUN pip3 install lxml /usr/local/src/pyecholab
-
 WORKDIR /app
 
 CMD ["python3", "/app/CRIMAC_preprocess.py"]

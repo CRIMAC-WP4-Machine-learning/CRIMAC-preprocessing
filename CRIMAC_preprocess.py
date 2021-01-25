@@ -17,6 +17,7 @@ import glob
 import ntpath
 import datetime
 import netCDF4 
+from sklearn.linear_model import LinearRegression
 
 from matplotlib import pyplot as plt, colors
 from matplotlib.colors import LinearSegmentedColormap, Colormap
@@ -151,6 +152,12 @@ def process_data_to_xr(raw_data):
     #sv_obj_as_depth = raw_data.get_sv(calibration = cal_obj,
     #    return_depth=True)
 
+    pulse_length = None
+    if raw_data.data_type == 'power/angle':
+        pulse_length = np.unique(raw_data.pulse_length)[0]
+    elif raw_data.data_type == 'complex-FM' or raw_data.data_type == 'complex-CW':
+        pulse_length = np.unique(raw_data.pulse_duration)[0]
+
     # Get frequency label
     freq = np.float32(sv_obj.frequency)
 
@@ -168,7 +175,7 @@ def process_data_to_xr(raw_data):
                            coords={ 'frequency': [freq],
                                     'ping_time': sv_obj.ping_time,
                                    })
-    return [sv, trdraft]
+    return [sv, trdraft, pulse_length]
 
 def _resampleWeight(r_t, r_s):
     """
@@ -276,6 +283,24 @@ def regrid_sv(sv, reference_range):
                     })
     return sv
 
+def interpolate_range(old_range, target):
+
+    # Use linear regression to pad the range to the target range
+    model = LinearRegression()
+    model.fit(np.array(range(len(old_range.values))).reshape(-1, 1), old_range)
+
+    # Calculate max_range index
+    max_range = int(np.round((target - model.intercept_)/model.coef_))
+
+    # Predict the missing range and add it into the old range
+    all_range_data = model.predict(np.array(range(max_range)).reshape(-1,1))
+    new_range_data = np.append(old_range.values, np.array(all_range_data[len(old_range):], dtype=np.float32))
+
+    # Construct a new range
+    new_range = xr.DataArray(name="range", data=new_range_data, dims=['range'],
+                    coords={'range': new_range_data})
+
+    return new_range
 
 def process_channel(raw_data, raw_data_main, reference_range):
     # Process channels with different ping times (TODO)
@@ -293,7 +318,7 @@ def process_channel(raw_data, raw_data_main, reference_range):
 
 def process_raw_file(raw_fname, main_frequency, reference_range = None):
     # Read input raw
-    print("Now processing file: " + raw_fname)
+    print("\n\nNow processing file: " + raw_fname)
     raw_obj = ek_read(raw_fname)
     print(raw_obj)
 
@@ -333,10 +358,14 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     raw_data_main = raw_obj.raw_data[main_channel[0]][0]
     sv_bundle = process_data_to_xr(raw_data_main)
 
-    # Check whether we need to set a reference range using this file's range
+    # Check whether we need to set a reference range using this file's range or max_range
     if type(reference_range) == type(None):
         reference_range = sv_bundle[0].range
     else:
+        # If we need to use the target range
+        if isinstance(reference_range, (int, float, complex)) and not isinstance(reference_range, bool):
+            reference_range = interpolate_range(sv_bundle[0].range, reference_range)
+
         # Check if we also need to regrid this main channel
         if(reference_range.equals(sv_bundle[0].range) == False):
             sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
@@ -344,6 +373,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     # Prepare placeholder for combined data
     sv_list = [sv_bundle[0]]
     trdraft_list = [sv_bundle[1]]
+    plength_list = [sv_bundle[2]]
 
     # Process channels with same frequency (TODO)
     #for chan in all_frequency:
@@ -357,10 +387,11 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         worker_data.append(result)
     
     ready = dask.delayed(zip)(*worker_data)
-    sv, trdraft = ready.compute(scheduler='threads')
+    sv, trdraft, plength = ready.compute(scheduler='threads')
 
     sv_list.extend(list(sv))
     trdraft_list.extend(list(trdraft))
+    plength_list.extend(list(plength))
 
     # Combine different frequencies
     da_sv = xr.concat(sv_list, dim='frequency')
@@ -381,6 +412,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             pitch=(["ping_time"], obj_pitch),
             roll=(["ping_time"], obj_roll),
             heading=(["ping_time"], obj_heading),
+            pulse_length=(["frequency"], plength_list)
             ),
         coords=dict(
             frequency = da_sv.frequency,
@@ -395,6 +427,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
 def raw_to_grid_single(raw_fname, main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False):
 
     # Prepare for writing output
+    target_fname = ""
     if write_output == True:
         # Construct target_fname
         if out_fname == "":
@@ -405,7 +438,7 @@ def raw_to_grid_single(raw_fname, main_frequency = 38000, write_output = False, 
             target_fname = out_fname + ".zarr"
         else:
             print("Output type is not supported")
-            return None
+            return False
 
         # Check logic to proceed with write
         is_exists = (os.path.isfile(target_fname) or os.path.isdir(target_fname))
@@ -436,12 +469,14 @@ def raw_to_grid_single(raw_fname, main_frequency = 38000, write_output = False, 
         else:
             print("Output type is not supported")
     
-    return ds
+    return True
 
 
 def prepare_resume(target_type, target_file, filename_list):
 
     # Try to open the file
+    reference_range = None
+    last_timestamp = None
     if target_type == "zarr":
         with xr.open_zarr(target_file) as tmp_src:
             last_timestamp = (tmp_src.ping_time[-1:]).values.astype('datetime64[s]')
@@ -461,18 +496,65 @@ def prepare_resume(target_type, target_file, filename_list):
 
     return new_filename_list, reference_range
 
-def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False, resume = False, reference_range_source = None):
+def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
+    print("Now trying to find the maximum range from the list of raw files...")
+    ref_file = ''
+    ref_range = 0
+
+    for fn in raw_fname:
+        # Read input raw
+        raw_obj = ek_read(dir_loc + "/" + fn)
+        main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
+        if main_raw_data.data_type == 'power/angle':
+            ref_data = main_raw_data.power
+        elif main_raw_data.data_type == 'complex-FM' or main_raw_data.data_type == 'complex-CW':
+            ref_data = main_raw_data.complex
+        else:
+            ref_data = np.zeros((0,0))
+
+        range_len = ref_data.shape[1]
+        if range_len > ref_range:
+            ref_range = range_len
+            ref_file = fn
+
+    # Now get the maximum range
+    raw_obj = ek_read(dir_loc + "/" + ref_file)
+    main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
+    cal_obj = main_raw_data.get_calibration()
+    sv_obj = main_raw_data.get_sv(calibration = cal_obj)
+    # Construct a new range
+    new_range = xr.DataArray(name="range", data=np.float32(sv_obj.range), dims=['range'],
+                    coords={'range': np.float32(sv_obj.range)})
+
+    print("Using this range from " + ref_file + ":")
+    print(new_range)
+    return new_range
+
+def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False, resume = False, max_reference_range = None):
+
+    # Misc. conditionals
+    write_first_loop = True
 
     # List files
     raw_fname = [ntpath.basename(a) for a in sorted(glob.glob(dir_loc + "/*.raw"))] 
 
-    # Check which file should be use as the reference range
-    if type(reference_range_source) == type(None):
+    # Check reference range info
+    if type(max_reference_range) == type(None):
+        # Use range from main_frequency channel on the first read file
+        reference_range = None
+    elif max_reference_range == "auto":
+        # Do a pass on all files and use a suitable range
+        reference_range = get_max_range_from_files(dir_loc, raw_fname, main_frequency)
+    elif isinstance(max_reference_range, (int, float, complex)) and not isinstance(max_reference_range, bool):
+        print("Using " + str(max_reference_range) + " as the maximum range.")
+        reference_range = max_reference_range
+    else:
+        print("Invalid max_reference_range! Using the main_frequency channel's range on the first read file.")
         reference_range = None
 
     # Prepare for writing output
+    target_fname = ""
     if write_output == True:
-        write_first_loop = True
         # Construct target_fname
         if out_fname == "":
             out_fname = "out"
@@ -502,7 +584,9 @@ def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, 
                 print("Trying to resume batch processing")
                 # Updating file list and using the reference range
                 raw_fname, reference_range = prepare_resume(output_type, target_fname, raw_fname)
+                print("New list of files:")
                 print(raw_fname)
+                print("Reference range:")
                 print(reference_range)
                 do_write = True
             else:
@@ -523,13 +607,6 @@ def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, 
         # Process single file
         ds = process_raw_file(dir_loc + "/" + fn, main_frequency, reference_range)
 
-        # Update reference_range if it's still
-        if type(reference_range) == type(None):
-            reference_range = ds.range
-        
-        print("Created dataset:")
-        print(ds)
-
         if do_write == True:
             if output_type == "netcdf4":
                 compressor = dict(zlib=True, complevel=5)
@@ -538,6 +615,8 @@ def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, 
                         append_to_netcdf(target_fname, ds, unlimited_dims='ping_time')
                 else:
                         ds.to_netcdf(target_fname, mode="w", unlimited_dims=['ping_time'], encoding=encoding)
+                        # Propagate range to the rest of the files
+                        reference_range = ds.range
             elif output_type == "zarr":
                 compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
                 encoding = {var: {"compressor" : compressor} for var in ds.data_vars}
@@ -545,6 +624,8 @@ def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, 
                         ds.to_zarr(target_fname, append_dim="ping_time")
                 else:
                         ds.to_zarr(target_fname, mode="w", encoding=encoding)
+                        # Propagate range to the rest of the files
+                        reference_range = ds.range
             else:
                 print("Output type is not supported")
 
@@ -561,6 +642,48 @@ out_type = os.getenv('OUTPUT_TYPE', 'zarr')
 # Get the output name
 out_name = os.path.expanduser("/dataout") + '/' + os.getenv('OUTPUT_NAME', 'out')
 
-# Do process
-status = raw_to_grid_multiple(raw_dir, write_output = True, out_fname = out_name, output_type = out_type, overwrite = False, resume = True)
+# Get the range determination type (numeric, 'auto', or None)
+# A numeric type will force the range steps to be equal to the specified number
+# 'auto' will force the range steps to be equal to the maximum range steps of all the processed files
+# None will use the first file's main channel's range steps
+max_ref_ran = os.getenv('MAX_RANGE_SRC', 'None')
+if max_ref_ran != "auto":
+    try:
+        max_ref_ran = int(max_ref_ran)
+    except ValueError as verr:
+        max_ref_ran = None
+    except Exception as ex:
+        max_ref_ran = None
 
+# Get the frequency for the main channel
+main_freq = os.getenv('MAIN_FREQ', '38000')
+try:
+    main_freq = int(main_freq)
+except ValueError as verr:
+    main_freq = 38000
+except Exception as ex:
+    main_freq = 38000
+
+# Get whether we should produce an overview image
+do_plot = os.getenv('WRITE_PNG', '0')
+if do_plot == '1':
+    do_plot = True
+else:
+    do_plot = False
+
+# Do process
+status = raw_to_grid_multiple(raw_dir,
+                            main_frequency = main_freq,
+                            write_output = True,
+                            out_fname = out_name,
+                            output_type = out_type,
+                            overwrite = False,
+                            resume = True,
+                            max_reference_range = max_ref_ran)
+
+if status == True and do_plot == True:
+    if out_type == "netcdf4":
+        ds = xr.open_dataset(out_name + ".nc", chunks={'ping_time':'auto'})
+    else:
+        ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
+    plot_all(ds, out_name)
