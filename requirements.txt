@@ -10,5 +10,4 @@ numcodecs
 numpy
 matplotlib
 scipy
-sklearn
 git+https://github.com/CI-CMG/pyEcholab.git@RHT-EK80#egg=pyEcholab
