@@ -159,19 +159,19 @@ def process_data_to_xr(raw_data):
         pulse_length = np.unique(raw_data.pulse_duration)[0]
 
     # Get frequency label
-    freq = np.float32(sv_obj.frequency)
+    freq = sv_obj.frequency
 
     # Expand sv values into a 3d object
     data3d = np.expand_dims(sv_obj.data, axis=0)
 
     # This is the sv data in 3d    
-    sv = xr.DataArray(name="sv", data=np.float32(data3d), dims=['frequency', 'ping_time', 'range'],
+    sv = xr.DataArray(name="sv", data=data3d, dims=['frequency', 'ping_time', 'range'],
                            coords={ 'frequency': [freq],
                                     'ping_time': sv_obj.ping_time,
-                                    'range': np.float32(sv_obj.range),
+                                    'range': sv_obj.range,
                                    })
     # This is the depth data
-    trdraft = xr.DataArray(name="transducer_draft", data=np.float32(np.expand_dims(sv_obj.transducer_draft, axis=0)), dims=['frequency', 'ping_time'],
+    trdraft = xr.DataArray(name="transducer_draft", data=np.expand_dims(sv_obj.transducer_draft, axis=0), dims=['frequency', 'ping_time'],
                            coords={ 'frequency': [freq],
                                     'ping_time': sv_obj.ping_time,
                                    })
@@ -267,7 +267,7 @@ def _regrid(sv_s, W, n_pings):
     # Add a row of at the bottom to be used in edge cases
     sv_s_mod = np.vstack((sv_s, np.zeros(n_pings)))
     # Do the dot product
-    return np.float32(np.dot(W, sv_s_mod))
+    return np.dot(W, sv_s_mod)
 
 def regrid_sv(sv, reference_range):
     print("Channel with frequency " + str(sv.frequency.values[0]) + " range mismatch! Reference range size: " + str(reference_range.size) + " != " + str(sv.range.size))
@@ -523,8 +523,8 @@ def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
     cal_obj = main_raw_data.get_calibration()
     sv_obj = main_raw_data.get_sv(calibration = cal_obj)
     # Construct a new range
-    new_range = xr.DataArray(name="range", data=np.float32(sv_obj.range), dims=['range'],
-                    coords={'range': np.float32(sv_obj.range)})
+    new_range = xr.DataArray(name="range", data=sv_obj.range, dims=['range'],
+                    coords={'range': sv_obj.range})
 
     print("Using this range from " + ref_file + ":")
     print(new_range)
