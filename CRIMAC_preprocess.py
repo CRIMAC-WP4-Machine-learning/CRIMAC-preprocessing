@@ -3,6 +3,9 @@
 Reads raw file and convert it into a grid-ed format.
 Right now it can handle different range sizes between channels.
 Has the ability to save the resulting grid into netcdf or zarr.
+
+Copyright 2020, Ibrahim Umar, Nils Olav Handegard, Alba Ordonez, Rune Øyerhamn.
+Licensed under LGPL3.
 """
 
 
