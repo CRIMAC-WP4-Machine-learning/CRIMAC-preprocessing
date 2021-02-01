@@ -286,6 +286,7 @@ def expand_range(old_range, target, interval):
 
     # Create new range data using np.arange with a given interval
     new_range_data = np.arange(old_range[0].values, target, interval)
+    new_range_data = new_range_data[:-1]
 
     # Construct a new range
     new_range = xr.DataArray(name="range", data=new_range_data, dims=['range'],
