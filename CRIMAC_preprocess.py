@@ -297,7 +297,11 @@ def expand_range(old_range, target, interval):
 
     return new_range
 
-def process_channel(raw_data, raw_data_main, reference_range):
+def process_channel(raw_obj, channel, raw_data_main, reference_range):
+
+    # Get the raw data
+    raw_data = raw_obj.raw_data[channel][0]
+
     # Process channels with different ping times (TODO)
     if(np.array_equal(raw_data.ping_time, raw_data_main.ping_time) == False):
         print("Time mismatch with the main channel, use ping_match()")
@@ -309,7 +313,7 @@ def process_channel(raw_data, raw_data_main, reference_range):
     if(reference_range.equals(sv_bundle[0].range) == False):
         sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
 
-    return sv_bundle
+    return [channel] + sv_bundle
 
 def process_raw_file(raw_fname, main_frequency, reference_range = None):
     # Read input raw
@@ -381,12 +385,11 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     worker_data = []
     for chan in other_channels:
         # Getting raw data for a frequency
-        raw_data = raw_obj.raw_data[chan][0]
-        result = dask.delayed(process_channel)(raw_data, raw_data_main, reference_range)
+        result = dask.delayed(process_channel)(raw_obj, chan, raw_data_main, reference_range)
         worker_data.append(result)
     
     ready = dask.delayed(zip)(*worker_data)
-    sv, trdraft, plength = ready.compute(scheduler='threads')
+    channelID, sv, trdraft, plength = ready.compute(scheduler='threads')
 
     sv_list.extend(list(sv))
     trdraft_list.extend(list(trdraft))
@@ -420,6 +423,9 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             ),
         attrs=dict(description="Multi-frequency sv values from EK."),
     )
+
+    # Add channel ID
+    ds.coords["channelID"] = ("frequency", main_channel + list(channelID))
 
     return ds
 
