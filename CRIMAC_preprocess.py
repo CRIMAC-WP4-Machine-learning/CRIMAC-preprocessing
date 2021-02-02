@@ -154,12 +154,6 @@ def process_data_to_xr(raw_data):
     #sv_obj_as_depth = raw_data.get_sv(calibration = cal_obj,
     #    return_depth=True)
 
-    pulse_length = None
-    if raw_data.data_type == 'power/angle':
-        pulse_length = np.unique(raw_data.pulse_length)[0]
-    elif raw_data.data_type == 'complex-FM' or raw_data.data_type == 'complex-CW':
-        pulse_length = np.unique(raw_data.pulse_duration)[0]
-
     # Get frequency label
     freq = sv_obj.frequency
 
@@ -177,7 +171,24 @@ def process_data_to_xr(raw_data):
                            coords={ 'frequency': [freq],
                                     'ping_time': sv_obj.ping_time,
                                    })
-    return [sv, trdraft, pulse_length]
+
+    # Additional data
+    pulse_length = None
+    angles_alongship_e = None
+    angles_athwartship_e = None
+
+    if raw_data.data_type == 'power/angle':
+        pulse_length = np.unique(raw_data.pulse_length)[0]
+        # Angles data
+        angles_alongship_e = sv.copy(data = np.expand_dims(raw_data.angles_alongship_e, axis=0))
+        angles_athwartship_e = sv.copy(data = np.expand_dims(raw_data.angles_athwartship_e, axis=0))
+    elif raw_data.data_type == 'complex-FM' or raw_data.data_type == 'complex-CW':
+        pulse_length = np.unique(raw_data.pulse_duration)[0]
+        ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
+        angles_alongship_e = sv.copy(data = np.expand_dims(ang1.data, axis=0))
+        angles_athwartship_e = sv.copy(data = np.expand_dims(ang2.data, axis=0))
+
+    return [sv, trdraft, pulse_length, angles_alongship_e, angles_athwartship_e]
 
 def _resampleWeight(r_t, r_s):
     """
@@ -312,6 +323,9 @@ def process_channel(raw_obj, channel, raw_data_main, reference_range):
     # Check if we need to regrid this channel's sv
     if(reference_range.equals(sv_bundle[0].range) == False):
         sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
+        # Regridding means emptying the angles (TODO)
+        sv_bundle[3] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
+        sv_bundle[4] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
 
     return [channel] + sv_bundle
 
@@ -372,11 +386,16 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         # Check if we also need to regrid this main channel
         if(reference_range.equals(sv_bundle[0].range) == False):
             sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
+            # Regridding means emptying the angles (TODO)
+            sv_bundle[3] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
+            sv_bundle[4] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
 
     # Prepare placeholder for combined data
     sv_list = [sv_bundle[0]]
     trdraft_list = [sv_bundle[1]]
     plength_list = [sv_bundle[2]]
+    angles_alongship_list = [sv_bundle[3]]
+    angles_athwartship_list = [sv_bundle[4]]
 
     # Process channels with same frequency (TODO)
     #for chan in all_frequency:
@@ -389,15 +408,19 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         worker_data.append(result)
     
     ready = dask.delayed(zip)(*worker_data)
-    channelID, sv, trdraft, plength = ready.compute(scheduler='threads')
+    channelID, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute(scheduler='threads')
 
     sv_list.extend(list(sv))
     trdraft_list.extend(list(trdraft))
     plength_list.extend(list(plength))
+    angles_alongship_list.extend(list(angles_alongship))
+    angles_athwartship_list.extend(list(angles_athwartship))
 
     # Combine different frequencies
     da_sv = xr.concat(sv_list, dim='frequency')
     da_trdraft = xr.concat(trdraft_list, dim='frequency')
+    da_angles_alongship = xr.concat(angles_alongship_list, dim='frequency')
+    da_angles_athwartship = xr.concat(angles_athwartship_list, dim='frequency')
 
     # Getting motion data
     obj_heave = raw_obj.motion_data.heave
@@ -409,6 +432,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     ds = xr.Dataset(
         data_vars=dict(
             sv=(["frequency", "ping_time", "range"], da_sv),
+            angles_alongship_e = (["frequency", "ping_time", "range"], da_angles_alongship),
+            angles_athwartship_e = (["frequency", "ping_time", "range"], da_angles_athwartship),
             transducer_draft=(["frequency", "ping_time"], da_trdraft),            
             heave=(["ping_time"], obj_heave),
             pitch=(["ping_time"], obj_pitch),
