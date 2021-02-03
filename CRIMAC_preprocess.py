@@ -3,6 +3,9 @@
 Reads raw file and convert it into a grid-ed format.
 Right now it can handle different range sizes between channels.
 Has the ability to save the resulting grid into netcdf or zarr.
+
+Copyright 2020, Ibrahim Umar, Nils Olav Handegard, Alba Ordonez, Rune Øyerhamn.
+Licensed under LGPL3.
 """
 
 
@@ -142,7 +145,7 @@ def plot_all(ds, out_name, range_res = 600, time_res = 800, interpolate = False)
     plt.gcf().set_size_inches(8,11)
     plt.savefig(out_name + "." + 'png', bbox_inches = 'tight', pad_inches = 0)
 
-def process_data_to_xr(raw_data):
+def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
     # Get calibration object
     cal_obj = raw_data.get_calibration()
     # Get sv values
@@ -150,12 +153,6 @@ def process_data_to_xr(raw_data):
     # Get sv as depth
     #sv_obj_as_depth = raw_data.get_sv(calibration = cal_obj,
     #    return_depth=True)
-
-    pulse_length = None
-    if raw_data.data_type == 'power/angle':
-        pulse_length = np.unique(raw_data.pulse_length)[0]
-    elif raw_data.data_type == 'complex-FM' or raw_data.data_type == 'complex-CW':
-        pulse_length = np.unique(raw_data.pulse_duration)[0]
 
     # Get frequency label
     freq = sv_obj.frequency
@@ -174,7 +171,28 @@ def process_data_to_xr(raw_data):
                            coords={ 'frequency': [freq],
                                     'ping_time': sv_obj.ping_time,
                                    })
-    return [sv, trdraft, pulse_length]
+
+    # Additional data
+    pulse_length = None
+    angles_alongship_e = None
+    angles_athwartship_e = None
+
+    if raw_data.data_type == 'power/angle':
+        pulse_length = np.unique(raw_data.pulse_length)[0]
+        # Angles data
+        angles_alongship_e = sv.copy(data = np.expand_dims(raw_data.angles_alongship_e, axis=0))
+        angles_athwartship_e = sv.copy(data = np.expand_dims(raw_data.angles_athwartship_e, axis=0))
+    elif raw_data.data_type == 'complex-FM' or raw_data.data_type == 'complex-CW':
+        pulse_length = np.unique(raw_data.pulse_duration)[0]
+        ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
+        angles_alongship_e = sv.copy(data = np.expand_dims(ang1.data, axis=0))
+        angles_athwartship_e = sv.copy(data = np.expand_dims(ang2.data, axis=0))
+
+    if get_positions:
+        positions = raw_obj.nmea_data.interpolate(sv_obj, 'RMC')
+        return [sv, trdraft, pulse_length, angles_alongship_e, angles_athwartship_e, positions]
+    else:
+        return [sv, trdraft, pulse_length, angles_alongship_e, angles_athwartship_e]
 
 def _resampleWeight(r_t, r_s):
     """
@@ -286,6 +304,7 @@ def expand_range(old_range, target, interval):
 
     # Create new range data using np.arange with a given interval
     new_range_data = np.arange(old_range[0].values, target, interval)
+    new_range_data = new_range_data[:-1]
 
     # Construct a new range
     new_range = xr.DataArray(name="range", data=new_range_data, dims=['range'],
@@ -293,7 +312,11 @@ def expand_range(old_range, target, interval):
 
     return new_range
 
-def process_channel(raw_data, raw_data_main, reference_range):
+def process_channel(raw_obj, channel, raw_data_main, reference_range):
+
+    # Get the raw data
+    raw_data = raw_obj.raw_data[channel][0]
+
     # Process channels with different ping times (TODO)
     if(np.array_equal(raw_data.ping_time, raw_data_main.ping_time) == False):
         print("Time mismatch with the main channel, use ping_match()")
@@ -304,8 +327,11 @@ def process_channel(raw_data, raw_data_main, reference_range):
     # Check if we need to regrid this channel's sv
     if(reference_range.equals(sv_bundle[0].range) == False):
         sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
+        # Regridding means emptying the angles (TODO)
+        sv_bundle[3] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
+        sv_bundle[4] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
 
-    return sv_bundle
+    return [channel] + sv_bundle
 
 def process_raw_file(raw_fname, main_frequency, reference_range = None):
     # Read input raw
@@ -347,7 +373,10 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
 
     # Getting Sv for the main channel
     raw_data_main = raw_obj.raw_data[main_channel[0]][0]
-    sv_bundle = process_data_to_xr(raw_data_main)
+    sv_bundle = process_data_to_xr(raw_data_main, raw_obj, get_positions=True)
+
+    # Get positions
+    positions = sv_bundle[5][1]
 
     # Check whether we need to set a reference range using this file's range or max_range
     if type(reference_range) == type(None):
@@ -364,11 +393,16 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         # Check if we also need to regrid this main channel
         if(reference_range.equals(sv_bundle[0].range) == False):
             sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
+            # Regridding means emptying the angles (TODO)
+            sv_bundle[3] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
+            sv_bundle[4] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
 
     # Prepare placeholder for combined data
     sv_list = [sv_bundle[0]]
     trdraft_list = [sv_bundle[1]]
     plength_list = [sv_bundle[2]]
+    angles_alongship_list = [sv_bundle[3]]
+    angles_athwartship_list = [sv_bundle[4]]
 
     # Process channels with same frequency (TODO)
     #for chan in all_frequency:
@@ -377,20 +411,23 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     worker_data = []
     for chan in other_channels:
         # Getting raw data for a frequency
-        raw_data = raw_obj.raw_data[chan][0]
-        result = dask.delayed(process_channel)(raw_data, raw_data_main, reference_range)
+        result = dask.delayed(process_channel)(raw_obj, chan, raw_data_main, reference_range)
         worker_data.append(result)
     
     ready = dask.delayed(zip)(*worker_data)
-    sv, trdraft, plength = ready.compute(scheduler='threads')
+    channelID, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute(scheduler='threads')
 
     sv_list.extend(list(sv))
     trdraft_list.extend(list(trdraft))
     plength_list.extend(list(plength))
+    angles_alongship_list.extend(list(angles_alongship))
+    angles_athwartship_list.extend(list(angles_athwartship))
 
     # Combine different frequencies
     da_sv = xr.concat(sv_list, dim='frequency')
     da_trdraft = xr.concat(trdraft_list, dim='frequency')
+    da_angles_alongship = xr.concat(angles_alongship_list, dim='frequency')
+    da_angles_athwartship = xr.concat(angles_athwartship_list, dim='frequency')
 
     # Getting motion data
     obj_heave = raw_obj.motion_data.heave
@@ -402,6 +439,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     ds = xr.Dataset(
         data_vars=dict(
             sv=(["frequency", "ping_time", "range"], da_sv),
+            angles_alongship_e = (["frequency", "ping_time", "range"], da_angles_alongship),
+            angles_athwartship_e = (["frequency", "ping_time", "range"], da_angles_athwartship),
             transducer_draft=(["frequency", "ping_time"], da_trdraft),            
             heave=(["ping_time"], obj_heave),
             pitch=(["ping_time"], obj_pitch),
@@ -416,6 +455,16 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             ),
         attrs=dict(description="Multi-frequency sv values from EK."),
     )
+
+    # Add channel ID
+    ds.coords["channelID"] = ("frequency", main_channel + list(channelID))
+
+    # Add positions
+    ds.coords["latitude"] = ("ping_time", positions['latitude'])
+    ds.coords["longitude"] = ("ping_time", positions['longitude'])
+
+    # Add ping_time to file mapping as coordinates
+    ds.coords["raw_file"] = ("ping_time", [ntpath.basename(raw_fname)] * len(ds.ping_time))
 
     return ds
 
@@ -678,7 +727,7 @@ status = raw_to_grid_multiple(raw_dir,
 
 if status == True and do_plot == True:
     if out_type == "netcdf4":
-        ds = xr.open_dataset(out_name + ".nc", chunks={'ping_time':'auto'})
+        ds = xr.open_dataset(out_name + ".nc")
     else:
         ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
     plot_all(ds, out_name)
