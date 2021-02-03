@@ -442,7 +442,6 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             angles_alongship_e = (["frequency", "ping_time", "range"], da_angles_alongship),
             angles_athwartship_e = (["frequency", "ping_time", "range"], da_angles_athwartship),
             transducer_draft=(["frequency", "ping_time"], da_trdraft),            
-            raw_file=(["ping_time"], [ntpath.basename(raw_fname)] * len(da_sv.ping_time)),
             heave=(["ping_time"], obj_heave),
             pitch=(["ping_time"], obj_pitch),
             roll=(["ping_time"], obj_roll),
@@ -463,6 +462,9 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     # Add positions
     ds.coords["latitude"] = ("ping_time", positions['latitude'])
     ds.coords["longitude"] = ("ping_time", positions['longitude'])
+
+    # Add ping_time to file mapping as coordinates
+    ds.coords["raw_file"] = ("ping_time", [ntpath.basename(raw_fname)] * len(ds.ping_time))
 
     return ds
 
