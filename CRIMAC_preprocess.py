@@ -145,7 +145,7 @@ def plot_all(ds, out_name, range_res = 600, time_res = 800, interpolate = False)
     plt.gcf().set_size_inches(8,11)
     plt.savefig(out_name + "." + 'png', bbox_inches = 'tight', pad_inches = 0)
 
-def process_data_to_xr(raw_data):
+def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
     # Get calibration object
     cal_obj = raw_data.get_calibration()
     # Get sv values
@@ -188,7 +188,11 @@ def process_data_to_xr(raw_data):
         angles_alongship_e = sv.copy(data = np.expand_dims(ang1.data, axis=0))
         angles_athwartship_e = sv.copy(data = np.expand_dims(ang2.data, axis=0))
 
-    return [sv, trdraft, pulse_length, angles_alongship_e, angles_athwartship_e]
+    if get_positions:
+        positions = raw_obj.nmea_data.interpolate(sv_obj, 'RMC')
+        return [sv, trdraft, pulse_length, angles_alongship_e, angles_athwartship_e, positions]
+    else:
+        return [sv, trdraft, pulse_length, angles_alongship_e, angles_athwartship_e]
 
 def _resampleWeight(r_t, r_s):
     """
@@ -369,7 +373,10 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
 
     # Getting Sv for the main channel
     raw_data_main = raw_obj.raw_data[main_channel[0]][0]
-    sv_bundle = process_data_to_xr(raw_data_main)
+    sv_bundle = process_data_to_xr(raw_data_main, raw_obj, get_positions=True)
+
+    # Get positions
+    positions = sv_bundle[5][1]
 
     # Check whether we need to set a reference range using this file's range or max_range
     if type(reference_range) == type(None):
@@ -451,6 +458,10 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
 
     # Add channel ID
     ds.coords["channelID"] = ("frequency", main_channel + list(channelID))
+
+    # Add positions
+    ds.coords["latitude"] = ("ping_time", positions['latitude'])
+    ds.coords["longitude"] = ("ping_time", positions['longitude'])
 
     return ds
 
