@@ -179,14 +179,13 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
 
     if raw_data.data_type == 'power/angle':
         pulse_length = np.unique(raw_data.pulse_length)[0]
-        # Angles data
-        angles_alongship_e = sv.copy(data = np.expand_dims(raw_data.angles_alongship_e, axis=0))
-        angles_athwartship_e = sv.copy(data = np.expand_dims(raw_data.angles_athwartship_e, axis=0))
     elif raw_data.data_type == 'complex-FM' or raw_data.data_type == 'complex-CW':
         pulse_length = np.unique(raw_data.pulse_duration)[0]
-        ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
-        angles_alongship_e = sv.copy(data = np.expand_dims(ang1.data, axis=0))
-        angles_athwartship_e = sv.copy(data = np.expand_dims(ang2.data, axis=0))
+
+    # Calculate angles
+    ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
+    angles_alongship_e = sv.copy(data = np.expand_dims(ang1.data, axis=0))
+    angles_athwartship_e = sv.copy(data = np.expand_dims(ang2.data, axis=0))
 
     if get_positions:
         positions = raw_obj.nmea_data.interpolate(sv_obj, 'RMC')
