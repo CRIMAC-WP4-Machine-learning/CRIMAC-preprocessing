@@ -725,7 +725,7 @@ status = raw_to_grid_multiple(raw_dir,
 
 if status == True and do_plot == True:
     if out_type == "netcdf4":
-        ds = xr.open_dataset(out_name + ".nc", chunks={'ping_time':'auto'})
+        ds = xr.open_dataset(out_name + ".nc")
     else:
         ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
     plot_all(ds, out_name)
