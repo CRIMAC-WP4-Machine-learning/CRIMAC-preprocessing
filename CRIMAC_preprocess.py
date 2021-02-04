@@ -316,9 +316,10 @@ def process_channel(raw_obj, channel, raw_data_main, reference_range):
     # Get the raw data
     raw_data = raw_obj.raw_data[channel][0]
 
-    # Process channels with different ping times (TODO)
+    # Process channels with different ping times
     if(np.array_equal(raw_data.ping_time, raw_data_main.ping_time) == False):
-        print("Time mismatch with the main channel, use ping_match()")
+        print("This channel's time mismatched the main channel's, attempting match_pings() within 100th of a second.")
+        raw_data.match_pings(raw_data_main)
 
     # Process it into xarray
     sv_bundle = process_data_to_xr(raw_data)
