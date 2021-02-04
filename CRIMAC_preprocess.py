@@ -174,8 +174,8 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
 
     # Additional data
     pulse_length = None
-    angles_alongship_e = None
-    angles_athwartship_e = None
+    angle_alongship = None
+    angle_athwartship = None
 
     if raw_data.data_type == 'power/angle':
         pulse_length = np.unique(raw_data.pulse_length)[0]
@@ -184,14 +184,14 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
 
     # Calculate angles
     ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
-    angles_alongship_e = sv.copy(data = np.expand_dims(ang1.data, axis=0))
-    angles_athwartship_e = sv.copy(data = np.expand_dims(ang2.data, axis=0))
+    angle_alongship = sv.copy(data = np.expand_dims(ang1.data, axis=0))
+    angle_athwartship = sv.copy(data = np.expand_dims(ang2.data, axis=0))
 
     if get_positions:
         positions = raw_obj.nmea_data.interpolate(sv_obj, 'RMC')
-        return [sv, trdraft, pulse_length, angles_alongship_e, angles_athwartship_e, positions]
+        return [sv, trdraft, pulse_length, angle_alongship, angle_athwartship, positions]
     else:
-        return [sv, trdraft, pulse_length, angles_alongship_e, angles_athwartship_e]
+        return [sv, trdraft, pulse_length, angle_alongship, angle_athwartship]
 
 def _resampleWeight(r_t, r_s):
     """
@@ -438,8 +438,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     ds = xr.Dataset(
         data_vars=dict(
             sv=(["frequency", "ping_time", "range"], da_sv),
-            angles_alongship_e = (["frequency", "ping_time", "range"], da_angles_alongship),
-            angles_athwartship_e = (["frequency", "ping_time", "range"], da_angles_athwartship),
+            angle_alongship = (["frequency", "ping_time", "range"], da_angles_alongship),
+            angle_athwartship = (["frequency", "ping_time", "range"], da_angles_athwartship),
             transducer_draft=(["frequency", "ping_time"], da_trdraft),            
             heave=(["ping_time"], obj_heave),
             pitch=(["ping_time"], obj_pitch),
