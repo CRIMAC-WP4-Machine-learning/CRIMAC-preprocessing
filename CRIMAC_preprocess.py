@@ -344,8 +344,13 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
 
     main_channel = all_channels.copy()
 
-    # Get real frequency channel (for EK80 - FM)
-    main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
+    # Get real frequency channel. Give an error and exit if not found.
+    try:
+        main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
+    except KeyError as error:
+        print("There is no channel with the " + str(main_frequency) + " frequency. Using the first available channel!!!")
+        # Fall back into using the first available channel.
+        main_raw_data = raw_obj.raw_data[all_channels[0]][0]
 
     # Placeholder for all frequrncy
     all_frequency = []
@@ -368,8 +373,6 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     print("Main frequency: " + str(main_frequency))
     print("Main channel: " + str(main_channel))
     print("Other channels: " + str(other_channels))
-
-    # TODO : Handle not found frequency
 
     # Getting Sv for the main channel
     raw_data_main = raw_obj.raw_data[main_channel[0]][0]
