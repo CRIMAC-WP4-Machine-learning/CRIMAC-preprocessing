@@ -551,7 +551,11 @@ def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
     for fn in raw_fname:
         # Read input raw
         raw_obj = ek_read(dir_loc + "/" + fn)
-        main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
+        try:
+            main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
+        except KeyError as error:
+            # Fall back into using the first available channel.
+            main_raw_data = raw_obj.raw_data[list(raw_obj.raw_data.keys())[0]][0]
         if main_raw_data.data_type == 'power/angle':
             ref_data = main_raw_data.power
         elif main_raw_data.data_type == 'complex-FM' or main_raw_data.data_type == 'complex-CW':
@@ -566,7 +570,12 @@ def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
 
     # Now get the maximum range
     raw_obj = ek_read(dir_loc + "/" + ref_file)
-    main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
+    try:
+        main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
+    except KeyError as error:
+        # Fall back into using the first available channel.
+        main_raw_data = raw_obj.raw_data[list(raw_obj.raw_data.keys())[0]][0]
+
     cal_obj = main_raw_data.get_calibration()
     sv_obj = main_raw_data.get_sv(calibration = cal_obj)
     # Construct a new range
