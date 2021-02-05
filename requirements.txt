@@ -10,4 +10,4 @@ numcodecs
 numpy
 matplotlib
 scipy
-git+https://github.com/iambaim/pyEcholab.git@RHT-EK80#egg=pyEcholab
+git+https://github.com/iambaim/pyEcholab.git@fixes_for_crimac#egg=pyEcholab
