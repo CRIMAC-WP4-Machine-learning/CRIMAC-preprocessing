@@ -316,8 +316,9 @@ def process_channel(raw_obj, channel, raw_data_main, reference_range):
     # Get the raw data
     raw_data = raw_obj.raw_data[channel][0]
 
-    # Process channels with different ping times
-    if(np.array_equal(raw_data.ping_time, raw_data_main.ping_time) == False):
+    # Process channels with different ping times and with different frequencies
+    if(np.array_equal(raw_data.ping_time, raw_data_main.ping_time) == False
+        and raw_data.get_frequency(unique=True) != raw_data_main.get_frequency(unique=True)):
         print("This channel's time mismatched the main channel's, attempting match_pings() within 100th of a second.")
         raw_data.match_pings(raw_data_main)
 
@@ -406,9 +407,6 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     plength_list = [sv_bundle[2]]
     angles_alongship_list = [sv_bundle[3]]
     angles_athwartship_list = [sv_bundle[4]]
-
-    # Process channels with same frequency (TODO)
-    #for chan in all_frequency:
             
     # Process Sv for all other channels in parallel
     worker_data = []
@@ -432,11 +430,24 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     da_angles_alongship = xr.concat(angles_alongship_list, dim='frequency')
     da_angles_athwartship = xr.concat(angles_athwartship_list, dim='frequency')
 
-    # Getting motion data
-    obj_heave = raw_obj.motion_data.heave
-    obj_pitch = raw_obj.motion_data.pitch
-    obj_roll = raw_obj.motion_data.roll
-    obj_heading = raw_obj.motion_data.heading
+    # Getting motion data, apply extra treatment for duplicate frequencies with different times
+    if(len(da_sv.ping_time) == len(raw_obj.motion_data.heave)):
+        obj_heave = raw_obj.motion_data.heave
+        obj_pitch = raw_obj.motion_data.pitch
+        obj_roll = raw_obj.motion_data.roll
+        obj_heading = raw_obj.motion_data.heading
+    else:
+        # Find nearest time for motion
+        pidx = np.searchsorted(raw_obj.motion_data.times, da_sv.ping_time.data, side='right') - 1
+        obj_heave = raw_obj.motion_data.heave[pidx]
+        obj_pitch = raw_obj.motion_data.pitch[pidx]
+        obj_roll = raw_obj.motion_data.roll[pidx]
+        obj_heading = raw_obj.motion_data.heading[pidx]
+
+        # Find nearest time for positions
+        pidx = np.searchsorted(positions['ping_time'], da_sv.ping_time.data, side='right') - 1
+        positions['latitude'] = positions['latitude'][pidx]
+        positions['longitude'] = positions['longitude'][pidx]
 
     # Crate a dataset
     ds = xr.Dataset(
