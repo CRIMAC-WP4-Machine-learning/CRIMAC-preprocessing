@@ -140,7 +140,22 @@ def plot_all(ds, out_name, range_res = 600, time_res = 800, interpolate = False)
     vmin = sv.min(skipna=True).compute()
     vmax = sv.max(skipna=True).compute()
 
-    sv.plot(x="ping_time", y="range", row= "frequency", vmin = vmin, vmax = vmax, norm=colors.LogNorm(), cmap=simrad_cmap)
+    # Handle duplicate frequencies
+    if len(sv.frequency.data) == len(np.unique(sv.frequency.data)):
+        sv.plot(x="ping_time", y="range", row= "frequency", vmin = vmin, vmax = vmax, norm=colors.LogNorm(), cmap=simrad_cmap)
+    else:
+        frstr = ["%.2f" % i for i in sv.frequency.data]
+        new_coords = []
+        for frname in frstr:
+            orig = frname
+            i = 1
+            while frname in new_coords:
+                frname = orig + " #" + str(i)
+                i += 1
+            new_coords.append(frname)
+        sv.coords["frequency"] = new_coords
+        sv.plot(x="ping_time", y="range", row= "frequency", vmin = vmin, vmax = vmax, norm=colors.LogNorm(), cmap=simrad_cmap)
+
     plt.gca().invert_yaxis()
     plt.gcf().set_size_inches(8,11)
     plt.savefig(out_name + "." + 'png', bbox_inches = 'tight', pad_inches = 0)
