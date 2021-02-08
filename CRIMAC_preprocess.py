@@ -26,6 +26,12 @@ from matplotlib.colors import LinearSegmentedColormap, Colormap
 import math
 from numcodecs import Blosc
 
+from operator import itemgetter
+
+# Parallel
+import multiprocessing.popen_spawn_posix
+from distributed import Client
+
 # From https://github.com/pydata/xarray/issues/1672#issuecomment-685222909
 def _expand_variable(nc_variable, data, expanding_dim, nc_shape, added_size):
     # For time deltas, we must ensure that we use the same encoding as
@@ -349,7 +355,11 @@ def process_channel(raw_obj, channel, raw_data_main, reference_range):
 
     return [channel] + sv_bundle
 
-def process_raw_file(raw_fname, main_frequency, reference_range = None):
+def process_raw_file(params):
+
+    # Get parameters
+    raw_fname, main_frequency, reference_range = params
+
     # Read input raw
     print("\n\nNow processing file: " + raw_fname)
     raw_obj = ek_read(raw_fname)
@@ -569,33 +579,42 @@ def prepare_resume(target_type, target_file, filename_list):
 
     return new_filename_list, reference_range
 
+def _worker_find_range(params):
+    # Gather parameters
+    fn, main_freq = params
+
+    # Read input raw
+    raw_obj = ek_read(fn)
+    try:
+        main_raw_data = raw_obj.get_channel_data(main_freq)[main_freq][0]
+    except KeyError as error:
+        # Fall back into using the first available channel.
+        main_raw_data = raw_obj.raw_data[list(raw_obj.raw_data.keys())[0]][0]
+    if main_raw_data.data_type == 'power/angle':
+        ref_data = main_raw_data.power
+    elif main_raw_data.data_type == 'complex-FM' or main_raw_data.data_type == 'complex-CW':
+        ref_data = main_raw_data.complex
+    else:
+        ref_data = np.zeros((0,0))
+
+    ret_value = ref_data.shape[1]
+
+    return (ret_value, fn)
+
 def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
     print("Now trying to find the maximum range from the list of raw files...")
     ref_file = ''
-    ref_range = 0
 
-    for fn in raw_fname:
-        # Read input raw
-        raw_obj = ek_read(dir_loc + "/" + fn)
-        try:
-            main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
-        except KeyError as error:
-            # Fall back into using the first available channel.
-            main_raw_data = raw_obj.raw_data[list(raw_obj.raw_data.keys())[0]][0]
-        if main_raw_data.data_type == 'power/angle':
-            ref_data = main_raw_data.power
-        elif main_raw_data.data_type == 'complex-FM' or main_raw_data.data_type == 'complex-CW':
-            ref_data = main_raw_data.complex
-        else:
-            ref_data = np.zeros((0,0))
+    # Construct parameters
+    params = [(dir_loc+'/'+fn, main_frequency) for fn in raw_fname]
 
-        range_len = ref_data.shape[1]
-        if range_len > ref_range:
-            ref_range = range_len
-            ref_file = fn
+    # Getting values from clients
+    futures = client.map(_worker_find_range, params)
+    results = client.gather(futures)
+    ref_file = max(results, key = itemgetter(0))[1]
 
     # Now get the maximum range
-    raw_obj = ek_read(dir_loc + "/" + ref_file)
+    raw_obj = ek_read(ref_file)
     try:
         main_raw_data = raw_obj.get_channel_data(main_frequency)[main_frequency][0]
     except KeyError as error:
@@ -685,11 +704,13 @@ def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, 
         # Nothing to do here
         return None
 
-    for fn in raw_fname:
-        # Process single file
-        ds = process_raw_file(dir_loc + "/" + fn, main_frequency, reference_range)
+    # Construct parameters
+    params = [(dir_loc+'/'+fn, main_frequency, reference_range) for fn in raw_fname]
+    futures= client.map(process_raw_file, params)
 
-        if do_write == True:
+    if do_write == True:
+        for ft in futures:
+            ds = ft.result()
             if output_type == "netcdf4":
                 compressor = dict(zlib=True, complevel=5)
                 encoding = {var: compressor for var in ds.data_vars}
@@ -715,57 +736,62 @@ def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, 
 
     return True
 
-# Default input raw dir
-raw_dir = os.path.expanduser("/datain")
 
-# Get the output type
-out_type = os.getenv('OUTPUT_TYPE', 'zarr')
+if __name__ == '__main__':
+    # Default input raw dir
+    raw_dir = os.path.expanduser("/datain")
 
-# Get the output name
-out_name = os.path.expanduser("/dataout") + '/' + os.getenv('OUTPUT_NAME', 'out')
+    # Get the output type
+    out_type = os.getenv('OUTPUT_TYPE', 'zarr')
 
-# Get the range determination type (numeric, 'auto', or None)
-# A numeric type will force the range steps to be equal to the specified number
-# 'auto' will force the range steps to be equal to the maximum range steps of all the processed files
-# None will use the first file's main channel's range steps
-max_ref_ran = os.getenv('MAX_RANGE_SRC', 'None')
-if max_ref_ran != "auto":
+    # Get the output name
+    out_name = os.path.expanduser("/dataout") + '/' + os.getenv('OUTPUT_NAME', 'out')
+
+    # Get the range determination type (numeric, 'auto', or None)
+    # A numeric type will force the range steps to be equal to the specified number
+    # 'auto' will force the range steps to be equal to the maximum range steps of all the processed files
+    # None will use the first file's main channel's range steps
+    max_ref_ran = os.getenv('MAX_RANGE_SRC', 'None')
+    if max_ref_ran != "auto":
+        try:
+            max_ref_ran = int(max_ref_ran)
+        except ValueError as verr:
+            max_ref_ran = None
+        except Exception as ex:
+            max_ref_ran = None
+
+    # Get the frequency for the main channel
+    main_freq = os.getenv('MAIN_FREQ', '38000')
     try:
-        max_ref_ran = int(max_ref_ran)
+        main_freq = int(main_freq)
     except ValueError as verr:
-        max_ref_ran = None
+        main_freq = 38000
     except Exception as ex:
-        max_ref_ran = None
+        main_freq = 38000
 
-# Get the frequency for the main channel
-main_freq = os.getenv('MAIN_FREQ', '38000')
-try:
-    main_freq = int(main_freq)
-except ValueError as verr:
-    main_freq = 38000
-except Exception as ex:
-    main_freq = 38000
-
-# Get whether we should produce an overview image
-do_plot = os.getenv('WRITE_PNG', '0')
-if do_plot == '1':
-    do_plot = True
-else:
-    do_plot = False
-
-# Do process
-status = raw_to_grid_multiple(raw_dir,
-                            main_frequency = main_freq,
-                            write_output = True,
-                            out_fname = out_name,
-                            output_type = out_type,
-                            overwrite = False,
-                            resume = True,
-                            max_reference_range = max_ref_ran)
-
-if status == True and do_plot == True:
-    if out_type == "netcdf4":
-        ds = xr.open_dataset(out_name + ".nc")
+    # Get whether we should produce an overview image
+    do_plot = os.getenv('WRITE_PNG', '0')
+    if do_plot == '1':
+        do_plot = True
     else:
-        ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
-    plot_all(ds, out_name)
+        do_plot = False
+
+    # Prepare client for distributed processing
+    client = Client('crimac-master:8786')
+
+    # Do process
+    status = raw_to_grid_multiple(raw_dir,
+                                main_frequency = main_freq,
+                                write_output = True,
+                                out_fname = out_name,
+                                output_type = out_type,
+                                overwrite = False,
+                                resume = True,
+                                max_reference_range = max_ref_ran)
+
+    if status == True and do_plot == True:
+        if out_type == "netcdf4":
+            ds = xr.open_dataset(out_name + ".nc")
+        else:
+            ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
+        plot_all(ds, out_name)
