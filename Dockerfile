@@ -12,8 +12,8 @@ RUN apt-get update -y && \
 FROM python:3-slim
 
 COPY --from=builder /install /usr/local
-COPY CRIMAC_preprocess.py /app/CRIMAC_preprocess.py
+COPY run.sh CRIMAC_preprocess.py /app/
 
 WORKDIR /app
 
-CMD ["python3", "/app/CRIMAC_preprocess.py"]
+CMD ["./run.sh"]
