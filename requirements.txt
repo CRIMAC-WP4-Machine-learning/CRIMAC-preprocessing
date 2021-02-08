@@ -5,6 +5,7 @@ zarr
 netCDF4
 dask[array]
 dask[delayed]
+dask[distributed]
 xarray
 numcodecs
 numpy
