@@ -777,7 +777,14 @@ if __name__ == '__main__':
         do_plot = False
 
     # Prepare client for distributed processing
-    client = Client('crimac-master:8786')
+    # Get master (scheduler) node, otherwise use local cluster
+    master_node = os.getenv('MASTER_HOST', '0')
+    if master_node != '0':
+        client = Client(master_node + ':8786')
+    else:
+        client = Client()
+    print("Using parallel environment:")
+    print(client)
 
     # Do process
     status = raw_to_grid_multiple(raw_dir,
