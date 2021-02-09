@@ -12,26 +12,32 @@ MAX_RANGE_SRC=auto
 OUTPUT_NAME=parallel-test
 WRITE_PNG=0
 
+# Placeholder for ids
+ids=()
+
 # Start the scheduler
-docker run -dit --name $MASTER_HOST \
+ret=$(docker run -dit --name $MASTER_HOST \
   --env MODE=master \
+  -p 8786:8786 \
   -v $DATAIN:/datain \
   -v $DATAOUT:/dataout \
-  crimac/preprocessor:parallel
+  crimac/preprocessor:parallel)
+ids+=($ret)
 
 # Loop to start the workers
 for (( i = 0; i <= $NUM_WORKER; i++ ))
 do
-  docker run -dit --link $MASTER_HOST \
+  ret=$(docker run -dit --link $MASTER_HOST \
     --env MODE=worker \
     --env MASTER_HOST=$MASTER_HOST \
     -v $DATAIN:/datain \
     -v $DATAOUT:/dataout \
-    crimac/preprocessor:parallel
+    crimac/preprocessor:parallel)
+  ids+=($ret)
 done
 
-# Loop to start the workers
-docker run -it --link $MASTER_HOST \
+# Start the preprocessing script
+docker run -it --name run --link $MASTER_HOST \
   -v $DATAIN:/datain \
   -v $DATAOUT:/dataout \
   --security-opt label=disable \
@@ -42,3 +48,11 @@ docker run -it --link $MASTER_HOST \
   --env OUTPUT_NAME=$OUTPUT_NAME \
   --env WRITE_PNG=$WRITE_PNG \
   crimac/preprocessor:parallel
+
+# Cleaning up
+for id in "${ids[@]}"
+do
+     docker kill $id && docker rm $id
+done
+
+docker rm $(docker ps -aqf "name=run")
