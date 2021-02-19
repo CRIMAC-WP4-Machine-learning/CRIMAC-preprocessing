@@ -67,7 +67,7 @@ docker run -it --name pyechopreprocess \
 --env MAX_RANGE_SRC=500 \
 --env OUTPUT_NAME=S2020842 \
 --env WRITE_PNG=0 \
-crimac/test-preprocessor
+crimac/preprocessor
 
 
 ```
