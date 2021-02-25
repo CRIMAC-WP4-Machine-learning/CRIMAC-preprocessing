@@ -21,10 +21,22 @@ import ntpath
 import datetime
 import netCDF4 
 
+from annotationtools import readers
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+
 from matplotlib import pyplot as plt, colors
 from matplotlib.colors import LinearSegmentedColormap, Colormap
 import math
 from numcodecs import Blosc
+
+def append_to_parquet(df, pq_filepath, pq_obj=None):
+    pa_tbl = pa.Table.from_pandas(df)
+    if pq_obj == None:
+        pq_obj = pq.ParquetWriter(pq_filepath, pa_tbl.schema)
+    pq_obj.write_table(table=pa_tbl)
+    return pq_obj
 
 # From https://github.com/pydata/xarray/issues/1672#issuecomment-685222909
 def _expand_variable(nc_variable, data, expanding_dim, nc_shape, added_size):
@@ -43,7 +55,7 @@ def _expand_variable(nc_variable, data, expanding_dim, nc_shape, added_size):
     right_slices = data.ndim - left_slices - 1
     nc_slice   = (slice(None),) * left_slices + (slice(nc_shape, nc_shape + added_size),) + (slice(None),) * (right_slices)
     nc_variable[nc_slice] = data_encoded.data
-        
+
 def append_to_netcdf(filename, ds_to_append, unlimited_dims):
     if isinstance(unlimited_dims, str):
         unlimited_dims = [unlimited_dims]
@@ -612,7 +624,7 @@ def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
     print(new_range)
     return new_range
 
-def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False, resume = False, max_reference_range = None):
+def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False, resume = False, max_reference_range = None):
 
     # Misc. conditionals
     write_first_loop = True
@@ -685,9 +697,31 @@ def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, 
         # Nothing to do here
         return None
 
+    # Prepare parquet file path for work file data
+    pq_writer = None
+    pq_filepath = out_fname + "_work.parquet"
+
     for fn in raw_fname:
+        # Get base name
+        base_fname, _ = os.path.splitext(fn)
+
         # Process single file
         ds = process_raw_file(dir_loc + "/" + fn, main_frequency, reference_range)
+
+        # Process work file (if any)
+        work_fname = work_dir_loc + "/" + base_fname + ".work"
+        is_exists_work = os.path.isfile(work_fname)
+        if is_exists_work:
+            idx_fname = dir_loc + "/" + base_fname + ".idx"
+            is_exists_idx = os.path.isfile(idx_fname)
+            if is_exists_idx:
+                # Process work file
+                work = readers.work_reader(work_fname)
+                ann_obj = readers.work_to_annotation(work, idx_fname)
+                if ann_obj.df_ is not None:
+                    # Exclude layers for now (only schools and gaps)
+                    df = ann_obj.df_[ann_obj.df_.priority != 3]
+                    pq_writer = append_to_parquet(df, pq_filepath, pq_writer)
 
         if do_write == True:
             if output_type == "netcdf4":
@@ -717,6 +751,9 @@ def raw_to_grid_multiple(dir_loc, main_frequency = 38000, write_output = False, 
 
 # Default input raw dir
 raw_dir = os.path.expanduser("/datain")
+
+# Default input work dir
+work_dir = os.path.expanduser("/workin")
 
 # Get the output type
 out_type = os.getenv('OUTPUT_TYPE', 'zarr')
@@ -755,6 +792,7 @@ else:
 
 # Do process
 status = raw_to_grid_multiple(raw_dir,
+                            work_dir_loc = work_dir,
                             main_frequency = main_freq,
                             write_output = True,
                             out_fname = out_name,
