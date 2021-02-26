@@ -6,7 +6,7 @@ WORKDIR /install
 COPY requirements.txt /requirements.txt
 
 RUN apt-get update -y && \
-    apt-get install -y git && \
+    apt-get install -y libnetcdf-dev cmake && \
     pip install --prefix=/install -r /requirements.txt
 
 FROM python:3-slim
