@@ -8,9 +8,7 @@ dask[delayed]
 dask[dataframe]
 pandas
 pyarrow
-# Use xarray devel to avoid lossy datetime64 precision
-# use 0.17,0 when it's released
-git+https://github.com/pydata/xarray.git#egg=xarray
+xarray>=0.17.0
 numcodecs
 numpy
 matplotlib
