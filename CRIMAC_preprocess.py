@@ -204,10 +204,12 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
     angle_alongship = None
     angle_athwartship = None
 
-    if raw_data.data_type == 'power/angle':
+    if hasattr(raw_data, 'pulse_length'):
         pulse_length = np.unique(raw_data.pulse_length)[0]
-    elif raw_data.data_type == 'complex-FM' or raw_data.data_type == 'complex-CW':
+    elif hasattr(raw_data, 'pulse_duration'):
         pulse_length = np.unique(raw_data.pulse_duration)[0]
+    else:
+        pulse_length = 0
 
     # Calculate angles
     ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
