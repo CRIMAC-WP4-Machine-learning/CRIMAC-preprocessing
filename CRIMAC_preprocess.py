@@ -332,13 +332,27 @@ def expand_range(old_range, target, interval):
 
     # Create new range data using np.arange with a given interval
     new_range_data = np.arange(old_range[0].values, target, interval)
-    new_range_data = new_range_data[:-1]
+
+    # Remove values > target
+    new_range_data = new_range_data[new_range_data < target]
 
     # Construct a new range
     new_range = xr.DataArray(name="range", data=new_range_data, dims=['range'],
                     coords={'range': new_range_data})
 
     return new_range
+
+def compare_range(ref_range, src_range):
+    len_ref = len(ref_range)
+    len_src = len(src_range)
+
+    if len_src > len_ref:
+        return False
+    else:
+        if ref_range[:len_src].equals(src_range) == True:
+            return True
+        else:
+            return False
 
 def process_channel(raw_obj, channel, raw_data_main, reference_range):
 
@@ -355,11 +369,17 @@ def process_channel(raw_obj, channel, raw_data_main, reference_range):
     sv_bundle = process_data_to_xr(raw_data)
 
     # Check if we need to regrid this channel's sv
-    if(reference_range.equals(sv_bundle[0].range) == False):
+    if(compare_range(reference_range, sv_bundle[0].range) == False):
         sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
         # Regridding means emptying the angles (TODO)
         sv_bundle[3] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
         sv_bundle[4] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
+    else:
+        # Ordinary padding (sv and angles)
+        if(len(reference_range) != len(sv_bundle[0].range)):
+            for it in [0, 3, 4]:
+                sv_bundle[it] = sv_bundle[it].pad(range =(0, len(reference_range) - len(sv_bundle[it].range)))
+                sv_bundle[it]['range'] = reference_range.values
 
     return [channel] + sv_bundle
 
@@ -424,11 +444,17 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             reference_range = expand_range(sv_bundle[0].range, reference_range, unique_range_intervals)
 
         # Check if we also need to regrid this main channel
-        if(reference_range.equals(sv_bundle[0].range) == False):
+        if(compare_range(reference_range, sv_bundle[0].range) == False):
             sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
             # Regridding means emptying the angles (TODO)
             sv_bundle[3] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
             sv_bundle[4] = sv_bundle[0].copy(data = np.full(sv_bundle[0].shape, np.nan))
+        else:
+            # Ordinary padding (sv and angles)
+            if(len(reference_range) != len(sv_bundle[0].range)):
+                for it in [0, 3, 4]:
+                    sv_bundle[it] = sv_bundle[it].pad(range =(0, len(reference_range) - len(sv_bundle[it].range)))
+                    sv_bundle[it]['range'] = reference_range.values
 
     # Prepare placeholder for combined data
     sv_list = [sv_bundle[0]]
