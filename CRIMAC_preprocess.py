@@ -407,6 +407,10 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     raw_obj = ek_read(raw_fname)
     print(raw_obj)
 
+    # Gracefully continue when raw read result is invalid
+    if raw_obj is None or not hasattr(raw_obj, 'raw_data'):
+        return None
+
     # Get all channels
     all_channels = list(raw_obj.raw_data.keys())
 
@@ -753,6 +757,10 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
 
         # Process single file
         ds = process_raw_file(dir_loc + "/" + fn, main_frequency, reference_range)
+
+        # Continue on invalid data
+        if ds is None:
+            continue
 
         # Process work file (if any)
         work_fname = work_dir_loc + "/" + base_fname + ".work"
