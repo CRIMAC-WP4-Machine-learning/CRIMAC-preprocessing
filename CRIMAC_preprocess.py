@@ -503,21 +503,23 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     angles_alongship_list = [sv_bundle[3]]
     angles_athwartship_list = [sv_bundle[4]]
             
-    # Process Sv for all other channels in parallel
-    worker_data = []
-    for chan in other_channels:
-        # Getting raw data for a frequency
-        result = dask.delayed(process_channel)(raw_obj, chan, raw_data_main, reference_range)
-        worker_data.append(result)
-    
-    ready = dask.delayed(zip)(*worker_data)
-    channelID, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute(scheduler='threads')
+    # Process Sv for all other channels in parallel (if any)
+    channel_id = []
+    if len(other_channels) > 0:
+        worker_data = []
+        for chan in other_channels:
+            # Getting raw data for a frequency
+            result = dask.delayed(process_channel)(raw_obj, chan, raw_data_main, reference_range)
+            worker_data.append(result)
 
-    sv_list.extend(list(sv))
-    trdraft_list.extend(list(trdraft))
-    plength_list.extend(list(plength))
-    angles_alongship_list.extend(list(angles_alongship))
-    angles_athwartship_list.extend(list(angles_athwartship))
+        ready = dask.delayed(zip)(*worker_data)
+        channel_id, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute(scheduler='threads')
+
+        sv_list.extend(list(sv))
+        trdraft_list.extend(list(trdraft))
+        plength_list.extend(list(plength))
+        angles_alongship_list.extend(list(angles_alongship))
+        angles_athwartship_list.extend(list(angles_athwartship))
 
     # Combine different frequencies
     da_sv = xr.concat(sv_list, dim='frequency')
@@ -566,7 +568,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     )
 
     # Add channel ID
-    ds.coords["channelID"] = ("frequency", main_channel + list(channelID))
+    ds.coords["channel_id"] = ("frequency", main_channel + list(channel_id))
 
     # Add positions
     ds.coords["latitude"] = ("ping_time", positions['latitude'])
