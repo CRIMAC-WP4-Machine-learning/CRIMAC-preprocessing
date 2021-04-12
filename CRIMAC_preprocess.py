@@ -51,7 +51,19 @@ import math
 from numcodecs import Blosc
 
 def append_to_parquet(df, pq_filepath, pq_obj=None):
-    pa_tbl = pa.Table.from_pandas(df)
+    # Must set the schema to avoid mismatched schema errors
+    fields = [
+        pa.field('ping_time', pa.timestamp('ns')),
+        pa.field('mask_depth_upper', pa.float64()),
+        pa.field('mask_depth_lower', pa.float64()),
+        pa.field('priority', pa.int64()),
+        pa.field('acoustic_category', pa.string()),
+        pa.field('proportion', pa.float64()),
+        pa.field('object_id', pa.string()),
+        pa.field('channel_id', pa.string())
+    ]
+    df_schema = pa.schema(fields)
+    pa_tbl = pa.Table.from_pandas(df, schema=df_schema, preserve_index=False)
     if pq_obj == None:
         pq_obj = pq.ParquetWriter(pq_filepath, pa_tbl.schema)
     pq_obj.write_table(table=pa_tbl)
