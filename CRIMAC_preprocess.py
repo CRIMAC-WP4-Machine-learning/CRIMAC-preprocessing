@@ -29,6 +29,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 from echolab2.instruments import EK80, EK60
 
+import sys
 import dask
 import numpy as np
 import xarray as xr
@@ -404,7 +405,12 @@ def process_channel(raw_obj, channel, raw_data_main, reference_range):
 def process_raw_file(raw_fname, main_frequency, reference_range = None):
     # Read input raw
     print("\n\nNow processing file: " + raw_fname)
-    raw_obj = ek_read(raw_fname)
+    raw_obj = None
+    try:
+        raw_obj = ek_read(raw_fname)
+    except:
+        e = sys.exc_info()[0]
+        print("Something went wrong when reading the RAW file: " + str(raw_fname) + " (" + str(e) + ")")
     print(raw_obj)
 
     # Gracefully continue when raw read result is invalid
