@@ -206,8 +206,16 @@ def plot_all(ds, out_name, range_res = 600, time_res = 800, interpolate = False)
 def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
     # Get calibration object
     cal_obj = raw_data.get_calibration()
+    sv_obj = None
     # Get sv values
-    sv_obj = raw_data.get_sv(calibration = cal_obj)
+    try:
+        sv_obj = raw_data.get_sv(calibration = cal_obj)
+    except:
+        e = sys.exc_info()[0]
+        print("Something went wrong when getting the SV for: " + str(raw_data) + " (" + str(e) + ")")
+
+    if sv_obj is None:
+        return None
     # Get sv as depth
     #sv_obj_as_depth = raw_data.get_sv(calibration = cal_obj,
     #    return_depth=True)
@@ -399,6 +407,10 @@ def process_channel(raw_obj, channel, raw_data_main, reference_range):
     # Process it into xarray
     sv_bundle = process_data_to_xr(raw_data)
 
+    # Handle processing error
+    if sv_bundle is None:
+        return [None, None, None, None, None, None]
+
     # Check if we need to regrid this channel's sv
     if(compare_range(reference_range, sv_bundle[0].range) == False):
         sv_bundle[0] = regrid_sv(sv_bundle[0], reference_range)
@@ -468,6 +480,10 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     raw_data_main = raw_obj.raw_data[main_channel[0]][0]
     sv_bundle = process_data_to_xr(raw_data_main, raw_obj, get_positions=True)
 
+    # Bail out if there is a problem in processing the main channel
+    if sv_bundle is None:
+        return None
+
     # Get positions
     positions = sv_bundle[5][1]
 
@@ -515,11 +531,13 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         ready = dask.delayed(zip)(*worker_data)
         channel_id, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute(scheduler='threads')
 
-        sv_list.extend(list(sv))
-        trdraft_list.extend(list(trdraft))
-        plength_list.extend(list(plength))
-        angles_alongship_list.extend(list(angles_alongship))
-        angles_athwartship_list.extend(list(angles_athwartship))
+        # Don't forget to filter out None from the broken Sv calculation
+        channel_ids = main_channel + list(filter(None.__ne__, channel_id))
+        sv_list.extend(list(filter(None.__ne__, sv)))
+        trdraft_list.extend(list(filter(None.__ne__, trdraft)))
+        plength_list.extend(list(filter(None.__ne__, plength)))
+        angles_alongship_list.extend(list(filter(None.__ne__, angles_alongship)))
+        angles_athwartship_list.extend(list(filter(None.__ne__, angles_athwartship)))
 
     # Combine different frequencies
     da_sv = xr.concat(sv_list, dim='frequency')
@@ -568,7 +586,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     )
 
     # Add channel ID
-    ds.coords["channel_id"] = ("frequency", main_channel + list(channel_id))
+    ds.coords["channel_id"] = ("frequency", channel_ids)
 
     # Add positions
     ds.coords["latitude"] = ("ping_time", positions['latitude'])
