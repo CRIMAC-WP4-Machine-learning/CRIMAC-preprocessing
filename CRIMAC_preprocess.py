@@ -513,14 +513,14 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
                     sv_bundle[it]['range'] = reference_range.values
 
     # Prepare placeholder for combined data
+    channel_ids = main_channel
     sv_list = [sv_bundle[0]]
     trdraft_list = [sv_bundle[1]]
     plength_list = [sv_bundle[2]]
     angles_alongship_list = [sv_bundle[3]]
     angles_athwartship_list = [sv_bundle[4]]
-            
+
     # Process Sv for all other channels in parallel (if any)
-    channel_id = []
     if len(other_channels) > 0:
         worker_data = []
         for chan in other_channels:
@@ -532,7 +532,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         channel_id, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute(scheduler='threads')
 
         # Don't forget to filter out None from the broken Sv calculation
-        channel_ids = main_channel + list(filter(None.__ne__, channel_id))
+        channel_ids = channel_ids + list(filter(None.__ne__, channel_id))
         sv_list.extend(list(filter(None.__ne__, sv)))
         trdraft_list.extend(list(filter(None.__ne__, trdraft)))
         plength_list.extend(list(filter(None.__ne__, plength)))
