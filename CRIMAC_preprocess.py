@@ -212,7 +212,7 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
         sv_obj = raw_data.get_sv(calibration = cal_obj)
     except:
         e = sys.exc_info()[0]
-        print("Something went wrong when getting the SV for: " + str(raw_data) + " (" + str(e) + ")")
+        print("ERROR: Something went wrong when getting the SV for: " + str(raw_data) + " (" + str(e) + ")")
 
     if sv_obj is None:
         return None
@@ -434,7 +434,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         raw_obj = ek_read(raw_fname)
     except:
         e = sys.exc_info()[0]
-        print("Something went wrong when reading the RAW file: " + str(raw_fname) + " (" + str(e) + ")")
+        print("ERROR: Something went wrong when reading the RAW file: " + str(raw_fname) + " (" + str(e) + ")")
     print(raw_obj)
 
     # Gracefully continue when raw read result is invalid
@@ -463,6 +463,9 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         # Getting raw data for a frequency
         raw_data = raw_obj.raw_data[chan][0]
         tmp = raw_data.get_frequency(unique = True)
+        if(len(tmp) > 1):
+            print("ERROR: Something went wrong in the RAW file " + str(raw_fname) + " . Channel " + str(chan) + " contains two different frequencies: " + str(tmp))
+            return None
         all_frequency.append(*tmp)
         if(main_raw_data.get_frequency(unique = True) != tmp):
             other_channels.append(chan)
@@ -789,6 +792,8 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
     pq_writer = None
     pq_filepath = out_fname + "_work.parquet"
 
+    # For handling new files
+    alternative_counter = 1
     for fn in raw_fname:
         # Get base name
         base_fname, _ = os.path.splitext(fn)
@@ -814,7 +819,7 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
                     ann_obj = readers.work_to_annotation(work, idx_fname)
                 except:
                     e = sys.exc_info()[0]
-                    print("Something went wrong when reading the WORK file: " + str(work_fname)  + " (" + str(e) + ")")
+                    print("ERROR: Something went wrong when reading the WORK file: " + str(work_fname)  + " (" + str(e) + ")")
                     print(str(e))
                 if ann_obj is not None and ann_obj.df_ is not None:
                     # Exclude layers for now (only schools and gaps)
@@ -826,20 +831,32 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
                 compressor = dict(zlib=True, complevel=5)
                 encoding = {var: compressor for var in ds.data_vars}
                 if write_first_loop == False:
+                    try:
                         append_to_netcdf(target_fname, ds, unlimited_dims='ping_time')
-                else:
+                    except ValueError:
+                        print("ERROR: Unable to append data from " + str(fn) + " to the existing NetCDF4 file. A new output will be created. Please check for channel mismatches!")
+                        target_fname = out_fname + "_" + str(alternative_counter) + ".nc"
+                        alternative_counter = alternative_counter + 1
                         ds.to_netcdf(target_fname, mode="w", unlimited_dims=['ping_time'], encoding=encoding)
-                        # Propagate range to the rest of the files
-                        reference_range = ds.range
+                else:
+                    ds.to_netcdf(target_fname, mode="w", unlimited_dims=['ping_time'], encoding=encoding)
+                    # Propagate range to the rest of the files
+                    reference_range = ds.range
             elif output_type == "zarr":
                 compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
                 encoding = {var: {"compressor" : compressor} for var in ds.data_vars}
                 if write_first_loop == False:
+                    try:
                         ds.to_zarr(target_fname, append_dim="ping_time")
-                else:
+                    except ValueError:
+                        print("ERROR: Unable to append data from " + str(fn) + " to the existing Zarr file. A new output will be created. Please check for channel mismatches!")
+                        target_fname = out_fname + "_" + str(alternative_counter) + ".zarr"
+                        alternative_counter = alternative_counter + 1
                         ds.to_zarr(target_fname, mode="w", encoding=encoding)
-                        # Propagate range to the rest of the files
-                        reference_range = ds.range
+                else:
+                    ds.to_zarr(target_fname, mode="w", encoding=encoding)
+                    # Propagate range to the rest of the files
+                    reference_range = ds.range
             else:
                 print("Output type is not supported")
 
