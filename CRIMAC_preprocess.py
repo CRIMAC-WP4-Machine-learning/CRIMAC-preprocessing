@@ -212,7 +212,7 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
         sv_obj = raw_data.get_sv(calibration = cal_obj)
     except:
         e = sys.exc_info()[0]
-        print("Something went wrong when getting the SV for: " + str(raw_data) + " (" + str(e) + ")")
+        print("ERROR: Something went wrong when getting the SV for: " + str(raw_data) + " (" + str(e) + ")")
 
     if sv_obj is None:
         return None
@@ -434,7 +434,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         raw_obj = ek_read(raw_fname)
     except:
         e = sys.exc_info()[0]
-        print("Something went wrong when reading the RAW file: " + str(raw_fname) + " (" + str(e) + ")")
+        print("ERROR: Something went wrong when reading the RAW file: " + str(raw_fname) + " (" + str(e) + ")")
     print(raw_obj)
 
     # Gracefully continue when raw read result is invalid
@@ -814,7 +814,7 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
                     ann_obj = readers.work_to_annotation(work, idx_fname)
                 except:
                     e = sys.exc_info()[0]
-                    print("Something went wrong when reading the WORK file: " + str(work_fname)  + " (" + str(e) + ")")
+                    print("ERROR: Something went wrong when reading the WORK file: " + str(work_fname)  + " (" + str(e) + ")")
                     print(str(e))
                 if ann_obj is not None and ann_obj.df_ is not None:
                     # Exclude layers for now (only schools and gaps)
