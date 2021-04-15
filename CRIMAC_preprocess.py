@@ -463,6 +463,9 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         # Getting raw data for a frequency
         raw_data = raw_obj.raw_data[chan][0]
         tmp = raw_data.get_frequency(unique = True)
+        if(len(tmp) > 1):
+            print("ERROR: Something went wrong in the RAW file " + str(raw_fname) + " . Channel " + str(chan) + " contains two different frequencies: " + str(tmp))
+            return None
         all_frequency.append(*tmp)
         if(main_raw_data.get_frequency(unique = True) != tmp):
             other_channels.append(chan)
