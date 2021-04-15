@@ -13,6 +13,12 @@ jobs:
         name: Checkout
         uses: actions/checkout@v2
       -
+        name: Get script version
+        run: |
+          export VERSION=$(awk '$1 == "__version__" {print $(NF)}' FS=" |=" CRIMAC_preprocess.py)
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        shell: bash
+      -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       -
@@ -31,4 +37,16 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
-          tags: crimac/preprocessor:latest
+          tags: |
+            crimac/preprocessor:latest
+            crimac/preprocessor:${{ env.VERSION }}
+      -
+        name: Make tag
+        uses: actions/create-release@v1
+        with:
+          draft: false
+          prerelease: false
+          release_name: CRIMAC Preprocessing-v${{ env.VERSION }}
+          tag_name: v${{ env.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
