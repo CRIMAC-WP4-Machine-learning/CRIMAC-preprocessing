@@ -25,7 +25,8 @@ along with this program; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 """
-
+# Set a the version here
+__version__ = 0.1
 
 from echolab2.instruments import EK80, EK60
 
@@ -804,6 +805,9 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
         # Continue on invalid data
         if ds is None:
             continue
+
+        # Append version attributes
+        ds.attrs["preprocessor_version"] = __version__
 
         # Process work file (if any)
         work_fname = work_dir_loc + "/" + base_fname + ".work"
