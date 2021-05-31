@@ -53,10 +53,3 @@ jobs:
           tag_name: v${{ env.VERSION }}-${{ env.GIT_SHA }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      -
-        name: Update repo description
-        uses: peter-evans/dockerhub-description@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: crimac/preprocessor
