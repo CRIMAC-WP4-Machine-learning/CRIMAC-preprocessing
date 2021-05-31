@@ -585,8 +585,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             frequency = da_sv.frequency,
             ping_time = da_sv.ping_time,
             range = da_sv.range,
-            ),
-        attrs=dict(description="Multi-frequency sv values from EK."),
+            )
     )
 
     # Add channel ID
@@ -807,7 +806,13 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
             continue
 
         # Append version attributes
-        ds.attrs["preprocessor_version"] = __version__
+        ds.attrs = dict(
+            name = "CRIMAC-preprocessor",
+            description="Multi-frequency sv values from EK.",
+            time = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z',
+            version = os.getenv('VERSION_NUMBER', __version__)
+            commit_sha = os.getenv('COMMIT_SHA', 'XXXXXXXX')
+        )
 
         # Process work file (if any)
         work_fname = work_dir_loc + "/" + base_fname + ".work"
