@@ -36,7 +36,9 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          build-args: version_number=${{ env.VERSION }}, commit_sha=${{ env.GIT_SHA }}
+          build-args: |
+            version_number=${{ env.VERSION }}
+            commit_sha=${{ env.GIT_SHA }}
           platforms: linux/amd64
           push: true
           tags: |
