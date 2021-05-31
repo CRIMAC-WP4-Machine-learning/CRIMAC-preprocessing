@@ -17,6 +17,7 @@ jobs:
         run: |
           export VERSION=$(awk '$1 == "__version__" {print $(NF)}' FS=" |=" CRIMAC_preprocess.py)
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "GIT_SHA=$(echo ${GITHUB_SHA} | cut -c1-8)" >> $GITHUB_ENV
         shell: bash
       -
         name: Set up QEMU
@@ -35,18 +36,27 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
+          build-args: version_number=${{ env.VERSION }}, commit_sha=${{ env.GIT_SHA }}
           platforms: linux/amd64
           push: true
           tags: |
             crimac/preprocessor:latest
             crimac/preprocessor:${{ env.VERSION }}
+            crimac/preprocessor:${{ env.VERSION }}-${{ env.GIT_SHA }}
       -
         name: Make tag
         uses: actions/create-release@v1
         with:
           draft: false
           prerelease: false
-          release_name: CRIMAC Preprocessing-v${{ env.VERSION }}
-          tag_name: v${{ env.VERSION }}
+          release_name: CRIMAC Preprocessing-v${{ env.VERSION }}-${{ env.GIT_SHA }}
+          tag_name: v${{ env.VERSION }}-${{ env.GIT_SHA }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      -
+        name: Update repo description
+        uses: peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: crimac/preprocessor
