@@ -810,7 +810,7 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
             name = "CRIMAC-preprocessor",
             description="Multi-frequency sv values from EK.",
             time = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z',
-            version = os.getenv('VERSION_NUMBER', __version__)
+            version = os.getenv('VERSION_NUMBER', __version__),
             commit_sha = os.getenv('COMMIT_SHA', 'XXXXXXXX')
         )
 
