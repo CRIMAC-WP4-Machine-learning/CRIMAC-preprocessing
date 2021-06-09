@@ -914,6 +914,13 @@ if do_plot == '1':
 else:
     do_plot = False
 
+# Setting up dask
+tmp_dir = os.path.expanduser('/dataout/tmp')
+
+dask.config.set({'temporary_directory': tmp_dir})
+client = Client()
+print(client)
+
 # Do process
 status = raw_to_grid_multiple(raw_dir,
                             work_dir_loc = work_dir,
@@ -931,3 +938,8 @@ if status == True and do_plot == True:
     else:
         ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
     plot_all(ds, out_name)
+
+# Cleaning up Dask
+client.close()
+if os.path.exists(tmp_dir):
+    shutil.rmtree(tmp_dir)
