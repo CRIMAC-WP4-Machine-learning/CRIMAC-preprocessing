@@ -41,6 +41,7 @@ import ntpath
 import datetime
 import netCDF4 
 
+from dask.distributed import Client
 from annotationtools import readers
 
 import pyarrow as pa
@@ -873,56 +874,59 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
 
     return True
 
-# Default input raw dir
-raw_dir = os.path.expanduser("/datain")
 
-# Default input work dir
-work_dir = os.path.expanduser("/workin")
 
-# Get the output type
-out_type = os.getenv('OUTPUT_TYPE', 'zarr')
+if __name__ == '__main__':
+    # Default input raw dir
+    raw_dir = os.path.expanduser("/datain")
 
-# Get the output name
-out_name = os.path.expanduser("/dataout") + '/' + os.getenv('OUTPUT_NAME', 'out')
+    # Default input work dir
+    work_dir = os.path.expanduser("/workin")
 
-# Get the range determination type (numeric, 'auto', or None)
-# A numeric type will force the range steps to be equal to the specified number
-# 'auto' will force the range steps to be equal to the maximum range steps of all the processed files
-# None will use the first file's main channel's range steps
-max_ref_ran = os.getenv('MAX_RANGE_SRC', 'None')
-if max_ref_ran != "auto":
+    # Get the output type
+    out_type = os.getenv('OUTPUT_TYPE', 'zarr')
+
+    # Get the output name
+    out_name = os.path.expanduser("/dataout") + '/' + os.getenv('OUTPUT_NAME', 'out')
+
+    # Get the range determination type (numeric, 'auto', or None)
+    # A numeric type will force the range steps to be equal to the specified number
+    # 'auto' will force the range steps to be equal to the maximum range steps of all the processed files
+    # None will use the first file's main channel's range steps
+    max_ref_ran = os.getenv('MAX_RANGE_SRC', 'None')
+    if max_ref_ran != "auto":
+        try:
+            max_ref_ran = int(max_ref_ran)
+        except ValueError as verr:
+            max_ref_ran = None
+        except Exception as ex:
+            max_ref_ran = None
+
+    # Get the frequency for the main channel
+    main_freq = os.getenv('MAIN_FREQ', '38000')
     try:
-        max_ref_ran = int(max_ref_ran)
+        main_freq = int(main_freq)
     except ValueError as verr:
-        max_ref_ran = None
+        main_freq = 38000
     except Exception as ex:
-        max_ref_ran = None
+        main_freq = 38000
 
-# Get the frequency for the main channel
-main_freq = os.getenv('MAIN_FREQ', '38000')
-try:
-    main_freq = int(main_freq)
-except ValueError as verr:
-    main_freq = 38000
-except Exception as ex:
-    main_freq = 38000
+    # Get whether we should produce an overview image
+    do_plot = os.getenv('WRITE_PNG', '0')
+    if do_plot == '1':
+        do_plot = True
+    else:
+        do_plot = False
 
-# Get whether we should produce an overview image
-do_plot = os.getenv('WRITE_PNG', '0')
-if do_plot == '1':
-    do_plot = True
-else:
-    do_plot = False
+    # Setting up dask
+    tmp_dir = os.path.expanduser('/dataout/tmp')
 
-# Setting up dask
-tmp_dir = os.path.expanduser('/dataout/tmp')
+    dask.config.set({'temporary_directory': tmp_dir})
+    client = Client()
+    print(client)
 
-dask.config.set({'temporary_directory': tmp_dir})
-client = Client()
-print(client)
-
-# Do process
-status = raw_to_grid_multiple(raw_dir,
+    # Do process
+    status = raw_to_grid_multiple(raw_dir,
                             work_dir_loc = work_dir,
                             main_frequency = main_freq,
                             write_output = True,
@@ -932,14 +936,14 @@ status = raw_to_grid_multiple(raw_dir,
                             resume = True,
                             max_reference_range = max_ref_ran)
 
-if status == True and do_plot == True:
-    if out_type == "netcdf4":
-        ds = xr.open_dataset(out_name + ".nc")
-    else:
-        ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
-    plot_all(ds, out_name)
+    if status == True and do_plot == True:
+        if out_type == "netcdf4":
+            ds = xr.open_dataset(out_name + ".nc")
+        else:
+            ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
+        plot_all(ds, out_name)
 
-# Cleaning up Dask
-client.close()
-if os.path.exists(tmp_dir):
-    shutil.rmtree(tmp_dir)
+    # Cleaning up Dask
+    client.close()
+    if os.path.exists(tmp_dir):
+        shutil.rmtree(tmp_dir)
