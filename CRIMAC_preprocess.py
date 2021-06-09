@@ -41,6 +41,7 @@ import ntpath
 import datetime
 import netCDF4 
 
+from dask.distributed import Client
 from annotationtools import readers
 
 import pyarrow as pa
