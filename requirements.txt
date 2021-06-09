@@ -12,6 +12,7 @@ pyarrow
 xarray>=0.17.0
 numcodecs
 numpy
+scipy
 matplotlib
 git+https://github.com/iambaim/pyEcholab.git@fixes_for_crimac#egg=pyEcholab
 git+https://github.com/CRIMAC-WP4-Machine-learning/CRIMAC-annotationtools.git#egg=annotationtools
