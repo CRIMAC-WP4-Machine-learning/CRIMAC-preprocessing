@@ -539,7 +539,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             worker_data.append(result)
 
         ready = dask.delayed(zip)(*worker_data)
-        channel_id, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute(scheduler='threads')
+        channel_id, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute()
 
         # Don't forget to filter out None from the broken Sv calculation
         channel_ids = channel_ids + list(filter(None.__ne__, channel_id))
