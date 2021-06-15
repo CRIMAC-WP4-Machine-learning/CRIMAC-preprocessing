@@ -10,7 +10,7 @@ In addition, pre-processing the Marec's LSSS work files into a `pandas` datafram
 2. Sv processing and re-gridding the channels are done in parallel (using `Dask`’s delayed).
 3. Automatic resuming from the last `ping_time` if the output file exists.
 4. Batch processing is done by appending directly to the output file, should be memory efficient.
-5. The image of this repository is available at Docker Hub (https://hub.docker.com/r/crimac/test-preprocessor).
+5. The image of this repository is available at Docker Hub (https://hub.docker.com/r/crimac/preprocessor).
 6. Processing annotations from `.work` files into a `pandas` dataframe object (using: https://github.com/CRIMAC-WP4-Machine-learning/CRIMAC-annotationtools).
 
 ## Options to run
