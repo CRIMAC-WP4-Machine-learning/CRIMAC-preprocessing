@@ -26,7 +26,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 """
 # Set a the version here
-__version__ = 0.1
+__version__ = 0.2
 
 from echolab2.instruments import EK80, EK60
 
@@ -258,7 +258,10 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
     angle_athwartship = sv.copy(data = np.expand_dims(ang2.data, axis=0))
 
     if get_positions:
-        positions = raw_obj.nmea_data.interpolate(sv_obj, 'RMC')
+        position = raw_obj.nmea_data.interpolate(sv_obj, 'position')
+        speed = raw_obj.nmea_data.interpolate(sv_obj, 'speed')
+        distance = raw_obj.nmea_data.interpolate(sv_obj, 'distance')
+        positions = {"position": position, "speed": speed, "distance": distance}
         return [sv, trdraft, pulse_length, angle_alongship, angle_athwartship, positions]
     else:
         return [sv, trdraft, pulse_length, angle_alongship, angle_athwartship]
@@ -489,8 +492,10 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     if sv_bundle is None:
         return None
 
-    # Get positions
-    positions = sv_bundle[5][1]
+    # Get (interpolated) position, speed, and distance
+    positions = sv_bundle[5]['position'][1]
+    speed = sv_bundle[5]['speed'][1]
+    distance = sv_bundle[5]['distance'][1]
 
     # Check whether we need to set a reference range using this file's range or max_range
     if type(reference_range) == type(None):
@@ -568,6 +573,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         pidx = np.searchsorted(positions['ping_time'], da_sv.ping_time.data, side='right') - 1
         positions['latitude'] = positions['latitude'][pidx]
         positions['longitude'] = positions['longitude'][pidx]
+        speed['spd_over_grnd_kts'] = speed['spd_over_grnd_kts'][pidx]
+        distance['trip_distance_nmi'] = distance['trip_distance_nmi'][pidx]
 
     # Crate a dataset
     ds = xr.Dataset(
@@ -580,6 +587,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             pitch=(["ping_time"], obj_pitch),
             roll=(["ping_time"], obj_roll),
             heading=(["ping_time"], obj_heading),
+            speed=(["ping_time"], speed['spd_over_grnd_kts']),
+            distance=(["ping_time"], distance['trip_distance_nmi']),
             pulse_length=(["frequency"], plength_list)
             ),
         coords=dict(
