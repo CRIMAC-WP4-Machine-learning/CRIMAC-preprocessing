@@ -26,7 +26,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 """
 # Set a the version here
-__version__ = 0.1
+__version__ = 0.2
 
 from echolab2.instruments import EK80, EK60
 
