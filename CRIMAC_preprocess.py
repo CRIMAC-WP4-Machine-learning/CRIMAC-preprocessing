@@ -931,7 +931,7 @@ if __name__ == '__main__':
     tmp_dir = os.path.expanduser('/dataout/tmp')
 
     dask.config.set({'temporary_directory': tmp_dir})
-    client = Client()
+    client = Client(processes=False)
     print(client)
 
     # Do process
