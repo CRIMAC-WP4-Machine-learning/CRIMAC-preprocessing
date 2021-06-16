@@ -41,7 +41,7 @@ import ntpath
 import datetime
 import netCDF4 
 
-from dask.distributed import Client
+from dask.distributed import Client, LocalCluster
 from annotationtools import readers
 
 import pyarrow as pa
@@ -931,7 +931,8 @@ if __name__ == '__main__':
     tmp_dir = os.path.expanduser('/dataout/tmp')
 
     dask.config.set({'temporary_directory': tmp_dir})
-    client = Client()
+    cluster = LocalCluster()
+    client = Client(cluster)
     print(client)
 
     # Do process
