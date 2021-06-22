@@ -398,10 +398,7 @@ def compare_range(ref_range, src_range):
         else:
             return False
 
-def process_channel(raw_obj, channel, raw_data_main, reference_range):
-
-    # Get the raw data
-    raw_data = raw_obj.raw_data[channel][0]
+def process_channel(raw_data, channel, raw_data_main, reference_range):
 
     # Process channels with different ping times and with different frequencies
     if(np.array_equal(raw_data.ping_time, raw_data_main.ping_time) == False
@@ -532,10 +529,12 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
 
     # Process Sv for all other channels in parallel (if any)
     if len(other_channels) > 0:
+        # Scatter raw_data_main
+        raw_data_main_i = dask.delayed(raw_data_main)
         worker_data = []
         for chan in other_channels:
             # Getting raw data for a frequency
-            result = dask.delayed(process_channel)(raw_obj, chan, raw_data_main, reference_range)
+            result = dask.delayed(process_channel)(raw_obj.raw_data[chan][0], chan, raw_data_main_i, reference_range)
             worker_data.append(result)
 
         ready = dask.delayed(zip)(*worker_data)
