@@ -541,12 +541,12 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         channel_id, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute()
 
         # Don't forget to filter out None from the broken Sv calculation
-        channel_ids = channel_ids + list(filter(None.__ne__, channel_id))
-        sv_list.extend(list(filter(None.__ne__, sv)))
-        trdraft_list.extend(list(filter(None.__ne__, trdraft)))
-        plength_list.extend(list(filter(None.__ne__, plength)))
-        angles_alongship_list.extend(list(filter(None.__ne__, angles_alongship)))
-        angles_athwartship_list.extend(list(filter(None.__ne__, angles_athwartship)))
+        channel_ids = channel_ids + [x for x in channel_id if x is not None]
+        sv_list.extend([x for x in sv if x is not None])
+        trdraft_list.extend([x for x in trdraft if x is not None])
+        plength_list.extend([x for x in plength if x is not None])
+        angles_alongship_list.extend([x for x in angles_alongship if x is not None])
+        angles_athwartship_list.extend([x for x in angles_athwartship if x is not None])
 
     # Combine different frequencies
     da_sv = xr.concat(sv_list, dim='frequency')
