@@ -39,7 +39,8 @@ import shutil
 import glob
 import ntpath
 import datetime
-import netCDF4 
+import netCDF4
+import json
 
 from dask.distributed import Client
 from annotationtools import readers
@@ -946,6 +947,24 @@ if __name__ == '__main__':
                             overwrite = False,
                             resume = True,
                             max_reference_range = max_ref_ran)
+
+    # Do post-processing (appending a unique ID)
+    if status is True:
+        if out_type == "netcdf4":
+            ds = xr.open_dataset(out_name + ".nc")
+            ds_id = dask.base.tokenize(ds)
+            ds.close()
+            with netCDF4.Dataset(out_name + ".nc", mode='a') as nc:
+                nc.id = ds_id
+        else:
+            ds = xr.open_zarr(out_name + ".zarr")
+            ds_id = dask.base.tokenize(ds)
+            ds.close()
+            with open(out_name + ".zarr" + "/.zattrs") as f:
+                data = json.load(f)
+                data['id'] = ds_id
+            with open(out_name + ".zarr" + "/.zattrs", "w") as f:
+                json.dump(data, f)
 
     if status == True and do_plot == True:
         if out_type == "netcdf4":
