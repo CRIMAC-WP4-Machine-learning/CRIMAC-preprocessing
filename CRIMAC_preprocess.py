@@ -861,6 +861,9 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
                     # Propagate range to the rest of the files
                     reference_range = ds.range
             elif output_type == "zarr":
+                # Re-chunk so that we have a full range in a chunk (zarr only)
+                ds = ds.chunk({"frequency": 1, "range": ds.range.shape[0], "ping_time": 'auto'})
+                # Encode zarr output
                 compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
                 encoding = {var: {"compressor" : compressor} for var in ds.data_vars}
                 if write_first_loop == False:
