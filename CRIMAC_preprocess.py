@@ -31,6 +31,8 @@ __version__ = 0.2
 from echolab2.instruments import EK80, EK60
 
 import sys
+import subprocess
+import re
 import dask
 import numpy as np
 import xarray as xr
@@ -886,6 +888,15 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
 
     return True
 
+def get_pyecholab_rev():
+    reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
+    for line in reqs.decode().split("\n"):
+        if re.search("pyEcholab", line):
+            match = re.findall(r"github\.com/(.*)", line)
+            if match:
+                return match[0]
+            else:
+                return "Undefined"
 
 
 if __name__ == '__main__':
@@ -948,14 +959,16 @@ if __name__ == '__main__':
                             resume = True,
                             max_reference_range = max_ref_ran)
 
-    # Do post-processing (appending a unique ID)
+    # Do post-processing (appending a unique ID and pyecholab rev)
     if status is True:
+        pyecholab_rev = get_pyecholab_rev()
         if out_type == "netcdf4":
             ds = xr.open_dataset(out_name + ".nc")
             ds_id = dask.base.tokenize(ds)
             ds.close()
             with netCDF4.Dataset(out_name + ".nc", mode='a') as nc:
                 nc.id = ds_id
+                nc.pyecholab = pyecholab_rev
         else:
             ds = xr.open_zarr(out_name + ".zarr")
             ds_id = dask.base.tokenize(ds)
@@ -963,6 +976,7 @@ if __name__ == '__main__':
             with open(out_name + ".zarr" + "/.zattrs") as f:
                 data = json.load(f)
                 data['id'] = ds_id
+                data['pyecholab'] = pyecholab_rev
             with open(out_name + ".zarr" + "/.zattrs", "w") as f:
                 json.dump(data, f)
 
