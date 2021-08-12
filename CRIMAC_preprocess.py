@@ -36,13 +36,13 @@ import re
 import dask
 import numpy as np
 import xarray as xr
+import zarr as zr
 import os.path
 import shutil
 import glob
 import ntpath
 import datetime
 import netCDF4
-import json
 
 from dask.distributed import Client
 from annotationtools import readers
@@ -825,7 +825,8 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
             description="Multi-frequency sv values from EK.",
             time = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z',
             version = os.getenv('VERSION_NUMBER', __version__),
-            commit_sha = os.getenv('COMMIT_SHA', 'XXXXXXXX')
+            commit_sha = os.getenv('COMMIT_SHA', 'XXXXXXXX'),
+            pyecholab = get_pyecholab_rev()
         )
 
         # Process work file (if any)
@@ -1027,24 +1028,21 @@ if __name__ == '__main__':
 
     # Post-processing: appending a unique ID and pyecholab rev
     if status is True:
-        pyecholab_rev = get_pyecholab_rev()
         if out_type == "netcdf4":
             ds = xr.open_dataset(out_name + ".nc")
             ds_id = dask.base.tokenize(ds)
             ds.close()
             with netCDF4.Dataset(out_name + ".nc", mode='a') as nc:
                 nc.id = ds_id
-                nc.pyecholab = pyecholab_rev
         else:
             ds = xr.open_zarr(out_name + ".zarr")
             ds_id = dask.base.tokenize(ds)
             ds.close()
-            with open(out_name + ".zarr" + "/.zattrs") as f:
-                data = json.load(f)
-                data['id'] = ds_id
-                data['pyecholab'] = pyecholab_rev
-            with open(out_name + ".zarr" + "/.zattrs", "w") as f:
-                json.dump(data, f)
+            zro = zr.open(out_name + ".zarr")
+            zro_attrs = zro.attrs.asdict()
+            print(zro_attrs)
+            zro_attrs["id"] = ds_id
+            zro.attrs.put(zro_attrs)
 
     if status == True and do_plot == True:
         if out_type == "netcdf4":
