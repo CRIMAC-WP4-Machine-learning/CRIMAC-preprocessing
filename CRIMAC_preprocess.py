@@ -907,9 +907,6 @@ def rechunk_output(output, output_dir):
     outputs = glob.glob(output + "*.zarr")
     outputs = sorted(outputs)
 
-    print(output)
-    print(outputs)
-
     # Open the files
     alldata = [xr.open_zarr(x) for x in outputs]
 
