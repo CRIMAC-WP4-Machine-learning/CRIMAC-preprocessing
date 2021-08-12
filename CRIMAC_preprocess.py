@@ -583,10 +583,10 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     # Crate a dataset
     ds = xr.Dataset(
         data_vars=dict(
-            sv=(["frequency", "ping_time", "range"], da_sv),
-            angle_alongship = (["frequency", "ping_time", "range"], da_angles_alongship),
-            angle_athwartship = (["frequency", "ping_time", "range"], da_angles_athwartship),
-            transducer_draft=(["frequency", "ping_time"], da_trdraft),            
+            sv=(["frequency", "ping_time", "range"], da_sv.data),
+            angle_alongship = (["frequency", "ping_time", "range"], da_angles_alongship.data),
+            angle_athwartship = (["frequency", "ping_time", "range"], da_angles_athwartship.data),
+            transducer_draft=(["frequency", "ping_time"], da_trdraft.data),
             heave=(["ping_time"], obj_heave),
             pitch=(["ping_time"], obj_pitch),
             roll=(["ping_time"], obj_roll),
