@@ -914,7 +914,7 @@ def rechunk_output(output, output_dir):
 
     # Combine if more than one
     if len(outputs) > 1:
-        combined = xr.combine_nested(alldata, concat_dim=['ping_time'])
+        combined = xr.combine_nested(alldata, concat_dim=['ping_time'], combine_attrs = "override")
     else:
         combined = alldata[0]
 
