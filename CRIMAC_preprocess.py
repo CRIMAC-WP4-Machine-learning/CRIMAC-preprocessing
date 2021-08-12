@@ -47,6 +47,8 @@ import json
 from dask.distributed import Client
 from annotationtools import readers
 
+from rechunker.api import rechunk
+
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -898,6 +900,59 @@ def get_pyecholab_rev():
             else:
                 return "Undefined"
 
+def rechunk_output(output, output_dir):
+
+    # Get the list of output
+    outputs = glob.glob(output + "*.zarr")
+    outputs = sorted(outputs)
+
+    print(output)
+    print(outputs)
+
+    # Open the files
+    alldata = [xr.open_zarr(x) for x in outputs]
+
+    # Combine if more than one
+    if len(outputs) > 1:
+        combined = xr.combine_nested(alldata, concat_dim=['ping_time'])
+    else:
+        combined = alldata[0]
+
+    # Get the optimal chunk size
+    tmp = combined.sv.chunk({'frequency' : 1, 'ping_time': 'auto', 'range' : -1})
+    chunk_size = {}
+    for i in [0, 1, 2]:
+        chunk_size[tmp.coords.dims[i]] = tmp.chunks[i][0]
+
+    # For some strange reason we need to force-convert channel_id to string instead of dtype
+    combined["channel_id"] = ("frequency", combined.channel_id.values.astype("str"))
+
+    # Prepare encoding and chunks parameters for rechunking
+    compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
+    encoding = {var: {"compressor" : compressor} for var in combined.data_vars}
+    newchunks = {var: {xi: chunk_size[xi] for xi in combined[var].coords.dims} for var in combined.data_vars}
+
+    # Need to unify chunk first
+    combined2 = combined.chunk(newchunks['sv'])
+
+    # Needed because a bug in rechunk-xarray
+    for var in combined2.variables:
+        if "chunks" in combined2[var].encoding:
+            del combined2[var].encoding['chunks']
+        if "preferred_chunks" in combined2[var].encoding:
+            del combined2[var].encoding['preferred_chunks']
+
+    # Do rechunk
+    tmp_file = output_dir + "/temp.zarr"
+    combined_file = output_dir + "/combined.zarr"
+    rechunked = rechunk(combined2, target_chunks=newchunks, max_mem='200MB', temp_store = tmp_file, target_store = combined_file, target_options = encoding)
+    rechunked.execute()
+
+    # Cleaning up things
+    shutil.move(output + ".zarr", output + "_0.zarr")
+    shutil.move(combined_file, output + ".zarr")
+    shutil.rmtree(tmp_file)
+    [shutil.rmtree(fil) for fil in glob.glob(output + "_*.zarr")]
 
 if __name__ == '__main__':
     # Default input raw dir
@@ -959,7 +1014,18 @@ if __name__ == '__main__':
                             resume = True,
                             max_reference_range = max_ref_ran)
 
-    # Do post-processing (appending a unique ID and pyecholab rev)
+    # Cleaning up Dask
+    client.close()
+    if os.path.exists(tmp_dir):
+        shutil.rmtree(tmp_dir)
+
+    # Do post-processing #
+
+    # Post processing: rechunk Zarr files
+    if status is True and out_type == "zarr":
+        rechunk_output(out_name, os.path.expanduser("./dataout"))
+
+    # Post-processing: appending a unique ID and pyecholab rev
     if status is True:
         pyecholab_rev = get_pyecholab_rev()
         if out_type == "netcdf4":
@@ -986,8 +1052,3 @@ if __name__ == '__main__':
         else:
             ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
         plot_all(ds, out_name)
-
-    # Cleaning up Dask
-    client.close()
-    if os.path.exists(tmp_dir):
-        shutil.rmtree(tmp_dir)
