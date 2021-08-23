@@ -44,6 +44,8 @@ import ntpath
 import datetime
 import netCDF4
 
+from psutil import virtual_memory
+
 from dask.distributed import Client
 from annotationtools import readers
 
@@ -994,11 +996,17 @@ if __name__ == '__main__':
     else:
         do_plot = False
 
+    # Get total memory
+    mem = virtual_memory()
+
     # Setting up dask
     tmp_dir = os.path.expanduser('/dataout/tmp')
 
     dask.config.set({'temporary_directory': tmp_dir})
-    client = Client(processes=False)
+    client = Client(processes=False,
+                n_workers=4,
+                threads_per_worker=1,
+                memory_limit=str(mem.total/2))
     print(client)
 
     # Do process
