@@ -260,9 +260,17 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
         pulse_length = 0
 
     # Calculate angles
-    ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
-    angle_alongship = sv.copy(data = np.expand_dims(ang1.data, axis=0))
-    angle_athwartship = sv.copy(data = np.expand_dims(ang2.data, axis=0))
+    # TODO: Get angles for FM raw data will trigger errors
+    try:
+        ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
+    except TypeError as e:
+        print(e)
+        print("Setting NaN for angles for this channel")
+        angle_alongship = np.full(sv.shape, np.nan)
+        angle_athwartship = np.full(sv.shape, np.nan)
+    else:
+        angle_alongship = sv.copy(data = np.expand_dims(ang1.data, axis=0))
+        angle_athwartship = sv.copy(data = np.expand_dims(ang2.data, axis=0))
 
     if get_positions:
         position = raw_obj.nmea_data.interpolate(sv_obj, 'position')
