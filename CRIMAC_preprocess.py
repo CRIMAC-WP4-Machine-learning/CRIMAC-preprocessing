@@ -416,8 +416,11 @@ def compare_range(ref_range, src_range):
 def process_channel(raw_data, channel, raw_data_main, reference_range):
 
     # Process channels with different ping times and with different frequencies
+    # TODO: Check how to deal with the EK80 data
     if(np.array_equal(raw_data.ping_time, raw_data_main.ping_time) == False
-        and raw_data.get_frequency(unique=True) != raw_data_main.get_frequency(unique=True)):
+        and raw_data.get_frequency(unique=True) != raw_data_main.get_frequency(unique=True)
+        and type(raw_data).__module__ != "echolab2.instruments.EK80"
+        and type(raw_data_main).__module__ != "echolab2.instruments.EK80"):
         print("This channel's time mismatched the main channel's, attempting match_pings() within 100th of a second.")
         raw_data.match_pings(raw_data_main)
 
