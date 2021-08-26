@@ -242,7 +242,7 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
                                     'range': sv_obj.range,
                                    })
     # This is the depth data
-    trdraft = xr.DataArray(name="transducer_draft", data=np.expand_dims(sv_obj.transducer_draft, axis=0), dims=['frequency', 'ping_time'],
+    trdraft = xr.DataArray(name="transducer_draft", data=np.expand_dims(sv_obj.transducer_offset, axis=0), dims=['frequency', 'ping_time'],
                            coords={ 'frequency': [freq],
                                     'ping_time': sv_obj.ping_time,
                                    })
