@@ -593,6 +593,25 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         speed['spd_over_grnd_kts'] = speed['spd_over_grnd_kts'][pidx]
         distance['trip_distance_nmi'] = distance['trip_distance_nmi'][pidx]
 
+
+    # Get position speed distance in a dataset to ease alignments (if needed, as below)
+    da_pos = xr.Dataset(
+                data_vars=dict(
+                    distance=(["ping_time"], distance['trip_distance_nmi']),
+                    speed=(["ping_time"], speed['spd_over_grnd_kts']),
+                    latitude=(["ping_time"], positions['latitude']),
+                    longitude=(["ping_time"], positions['longitude'])
+                ),
+                coords=dict(
+                    ping_time = positions['ping_time']
+                )
+            )
+
+    # Handles conditione where we have missing time in position data
+    if len(positions['ping_time']) != len(da_sv.ping_time.data):
+        diff = np.setdiff1d(da_sv.ping_time.data, positions['ping_time'])
+        da_pos = da_pos.reindex({"ping_time": da_sv.ping_time.data})
+
     # Crate a dataset
     ds = xr.Dataset(
         data_vars=dict(
@@ -604,8 +623,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             pitch=(["ping_time"], obj_pitch),
             roll=(["ping_time"], obj_roll),
             heading=(["ping_time"], obj_heading),
-            speed=(["ping_time"], speed['spd_over_grnd_kts']),
-            distance=(["ping_time"], distance['trip_distance_nmi']),
+            speed=(["ping_time"], da_pos.speed.data),
+            distance=(["ping_time"], da_pos.distance.data),
             pulse_length=(["frequency"], plength_list)
             ),
         coords=dict(
@@ -619,8 +638,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     ds.coords["channel_id"] = ("frequency", channel_ids)
 
     # Add positions
-    ds.coords["latitude"] = ("ping_time", positions['latitude'])
-    ds.coords["longitude"] = ("ping_time", positions['longitude'])
+    ds.coords["latitude"] = ("ping_time", da_pos.latitude.data)
+    ds.coords["longitude"] = ("ping_time", da_pos.longitude.data)
 
     # Add ping_time to file mapping as coordinates
     ds.coords["raw_file"] = ("ping_time", [ntpath.basename(raw_fname)] * len(ds.ping_time))
