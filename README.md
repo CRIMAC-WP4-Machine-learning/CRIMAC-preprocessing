@@ -64,10 +64,10 @@ In addition, pre-processing the Marec's LSSS work files into a `pandas` datafram
 
 ```bash
 
-docker run -it --name pyechopreprocess \
+docker run -it \
 -v /data/cruise_data/2020/S2020842_PHELMERHANSSEN_1173/ACOUSTIC/EK60/EK60_RAWDATA:/datain \
 -v /data/cruise_data/2020/S2020842_PHELMERHANSSEN_1173/ACOUSTIC/LSSS/WORK:/workin \
--v /localscratch/ibrahim-echo/out:/dataout  \
+-v /localscratch/ibrahim-echo/out:/dataout \
 --security-opt label=disable \
 --env OUTPUT_TYPE=zarr \
 --env MAIN_FREQ=38000 \
