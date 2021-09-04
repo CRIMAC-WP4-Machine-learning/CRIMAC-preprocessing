@@ -586,13 +586,14 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         obj_roll = raw_obj.motion_data.roll[pidx]
         obj_heading = raw_obj.motion_data.heading[pidx]
 
+        # (TODO: re-check if below is still necessary)
         # Find nearest time for positions
-        pidx = np.searchsorted(positions['ping_time'], da_sv.ping_time.data, side='right') - 1
-        positions['latitude'] = positions['latitude'][pidx]
-        positions['longitude'] = positions['longitude'][pidx]
-        speed['spd_over_grnd_kts'] = speed['spd_over_grnd_kts'][pidx]
-        distance['trip_distance_nmi'] = distance['trip_distance_nmi'][pidx]
-
+        #print(len(distance['trip_distance_nmi']))
+        #pidx = np.searchsorted(positions['ping_time'], da_sv.ping_time.data, side='right') - 1
+        #positions['latitude'] = positions['latitude'][pidx]
+        #positions['longitude'] = positions['longitude'][pidx]
+        #speed['spd_over_grnd_kts'] = speed['spd_over_grnd_kts'][pidx]
+        #distance['trip_distance_nmi'] = distance['trip_distance_nmi'][pidx]
 
     # Get position speed distance in a dataset to ease alignments (if needed, as below)
     da_pos = xr.Dataset(
@@ -607,7 +608,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
                 )
             )
 
-    # Handles conditione where we have missing time in position data
+    # Handles condition where we have missing time in position data
     if len(positions['ping_time']) != len(da_sv.ping_time.data):
         diff = np.setdiff1d(da_sv.ping_time.data, positions['ping_time'])
         da_pos = da_pos.reindex({"ping_time": da_sv.ping_time.data})
