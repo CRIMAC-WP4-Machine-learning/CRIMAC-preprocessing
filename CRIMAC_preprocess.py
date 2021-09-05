@@ -260,10 +260,11 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
         pulse_length = 0
 
     # Calculate angles
-    # TODO: Get angles for FM raw data will trigger errors
+    # TODO: Get angles for FM raw data (and OneOcean's intermittent CW data) will trigger errors
     try:
         ang1, ang2 = raw_data.get_physical_angles(calibration = cal_obj)
-    except TypeError as e:
+    except:
+        e = sys.exc_info()[0]
         print(e)
         print("Setting NaN for angles for this channel")
         angle_alongship = np.full(sv.shape, np.nan)
