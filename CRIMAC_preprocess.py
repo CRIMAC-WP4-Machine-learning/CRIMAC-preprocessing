@@ -43,6 +43,7 @@ import glob
 import ntpath
 import datetime
 import netCDF4
+import gc
 
 from psutil import virtual_memory
 
@@ -922,7 +923,11 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
                 print("Output type is not supported")
 
             write_first_loop = False
-
+        #gc memory
+        print("gc.collect memory")
+        print(gc.get_count())
+        print(gc.collect())
+        print(gc.get_count())
     return True
 
 def get_pyecholab_rev():
