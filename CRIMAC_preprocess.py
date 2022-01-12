@@ -883,6 +883,8 @@ def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_ou
                 if ann_obj is not None and ann_obj.df_ is not None:
                     # Exclude layers for now (only schools and gaps)
                     # df = ann_obj.df_[ann_obj.df_.priority != 3]
+                    
+                    # Layers schools and gaps
                     df = ann_obj.df_
                     pq_writer = append_to_parquet(df, pq_filepath, pq_writer)
 
