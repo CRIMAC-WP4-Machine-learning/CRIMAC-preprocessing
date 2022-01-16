@@ -1062,8 +1062,7 @@ if __name__ == '__main__':
     print(client)
 
     # Do process
-    status = raw_to_grid_multiple(raw_dir,
-                            raw_file ,
+    status = raw_to_grid_multiple(raw_dir, raw_file ,
                             work_dir_loc = work_dir,
                             main_frequency = main_freq,
                             write_output = True,
