@@ -60,6 +60,12 @@ In addition, pre-processing the Marec's LSSS work files into a `pandas` datafram
     --env WRITE_PNG=1 # enable or 0 to disable
     ```
 
+7. Optional attribute to process only one selected file when there are many raw files in the raw folder
+
+    ```bash
+    --env RAW_FILE=2019847-D20190509-T014326.raw
+    ```
+
 ## Example
 
 ```bash
