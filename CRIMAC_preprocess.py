@@ -774,7 +774,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
     
     if single_raw_file != 'nofile':
         raw_fname=[]
-        raw_fname.append(dir_loc + "/"+ single_raw_file)
+        raw_fname.append(single_raw_file)
         
     # Check reference range info
     if type(max_reference_range) == type(None):
