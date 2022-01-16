@@ -721,6 +721,25 @@ def prepare_resume(target_type, target_file, filename_list):
 
     return new_filename_list, reference_range
 
+
+def prepare_resume_singlefile(target_type, target_file, filename_list):
+
+    # Try to open the file
+    reference_range = None
+    last_timestamp = None
+    if target_type == "zarr":
+        with xr.open_zarr(target_file) as tmp_src:
+            last_timestamp = (tmp_src.ping_time[-1:]).values.astype('datetime64[s]')
+            reference_range = tmp_src.range
+    elif target_type == "netcdf4":
+        with xr.open_dataset(target_file) as tmp_src:
+            last_timestamp = (tmp_src.ping_time[-1:]).values.astype('datetime64[s]')
+            reference_range = tmp_src.range
+    else:
+        print("Unsupported format. Can't resume.")
+
+    return  reference_range
+
 def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
     print("Now trying to find the maximum range from the list of raw files...")
     ref_file = ''
@@ -775,6 +794,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
     if single_raw_file != 'nofile':
         raw_fname=[]
         raw_fname.append(single_raw_file)
+        print("single file: "+str(raw_fname))
         
     # Check reference range info
     if type(max_reference_range) == type(None):
@@ -821,7 +841,10 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
                 write_first_loop = False
                 print("Trying to resume batch processing")
                 # Updating file list and using the reference range
-                raw_fname, reference_range = prepare_resume(output_type, target_fname, raw_fname)
+                if single_raw_file != 'nofile':
+                    reference_range = prepare_resume_singlefile(output_type, target_fname, raw_fname)
+                else:
+                    raw_fname, reference_range = prepare_resume(output_type, target_fname, raw_fname)
                 print("New list of files:")
                 print(raw_fname)
                 print("Reference range:")
