@@ -1064,7 +1064,7 @@ if __name__ == '__main__':
     # Do process
     status = raw_to_grid_multiple(raw_dir,
                             work_dir_loc = work_dir,
-                            raw_file_name = raw_file,
+                            single_raw_file = raw_file,
                             main_frequency = main_freq,
                             write_output = True,
                             out_fname = out_name,
