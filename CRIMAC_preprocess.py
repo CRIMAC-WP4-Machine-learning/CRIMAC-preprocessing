@@ -764,14 +764,18 @@ def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
     print(new_range)
     return new_range
 
-def raw_to_grid_multiple(dir_loc, work_dir_loc, main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False, resume = False, max_reference_range = None):
+def raw_to_grid_multiple(dir_loc, single_raw_file = 'nofile', work_dir_loc, main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False, resume = False, max_reference_range = None):
 
     # Misc. conditionals
     write_first_loop = True
 
     # List files
     raw_fname = [ntpath.basename(a) for a in sorted(glob.glob(dir_loc + "/*.raw"))] 
-
+    
+    if single_raw_file != 'nofile':
+        raw_fname=[]
+        raw_fname.append(dir_loc + "/"+ single_raw_file)
+        
     # Check reference range info
     if type(max_reference_range) == type(None):
         # Use range from main_frequency channel on the first read file
@@ -1003,7 +1007,10 @@ if __name__ == '__main__':
 
     # Get the output type
     out_type = os.getenv('OUTPUT_TYPE', 'zarr')
-
+    
+    # raw_file for processing single files
+    raw_file = os.getenv('RAW_FILE', 'nofile')
+    
     # Get the output name
     out_name = os.path.expanduser("/dataout") + '/' + os.getenv('OUTPUT_NAME', 'out')
 
@@ -1056,6 +1063,7 @@ if __name__ == '__main__':
 
     # Do process
     status = raw_to_grid_multiple(raw_dir,
+                            raw_file ,
                             work_dir_loc = work_dir,
                             main_frequency = main_freq,
                             write_output = True,
