@@ -764,7 +764,7 @@ def get_max_range_from_files(dir_loc, raw_fname, main_frequency):
     print(new_range)
     return new_range
 
-def raw_to_grid_multiple(dir_loc, single_raw_file = 'nofile', work_dir_loc, main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False, resume = False, max_reference_range = None):
+def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', main_frequency = 38000, write_output = False, out_fname = "", output_type = "zarr", overwrite = False, resume = False, max_reference_range = None):
 
     # Misc. conditionals
     write_first_loop = True
@@ -1062,8 +1062,9 @@ if __name__ == '__main__':
     print(client)
 
     # Do process
-    status = raw_to_grid_multiple(raw_dir, raw_file ,
+    status = raw_to_grid_multiple(raw_dir,
                             work_dir_loc = work_dir,
+                            raw_file ,
                             main_frequency = main_freq,
                             write_output = True,
                             out_fname = out_name,
