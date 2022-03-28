@@ -42,8 +42,9 @@ import shutil
 import glob
 import ntpath
 import datetime
-import netCDF4
 import gc
+import netCDF4
+
 
 from psutil import virtual_memory
 
