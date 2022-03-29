@@ -957,6 +957,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
 
             write_first_loop = False
         #gc memory
+        del ds
         print("gc.collect memory")
         print(gc.get_count())
         print(gc.collect())
