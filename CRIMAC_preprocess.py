@@ -388,6 +388,8 @@ def regrid_sv(sv, reference_range):
                             'ping_time': sv.ping_time,
                             'range': reference_range.values,
                     })
+    del sv_tmp 
+    del sv_obj 
     return sv
 
 def expand_range(old_range, target, interval):
