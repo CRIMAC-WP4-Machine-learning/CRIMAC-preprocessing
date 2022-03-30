@@ -387,9 +387,7 @@ def regrid_sv(sv, reference_range):
                     coords={ 'frequency': sv.frequency,
                             'ping_time': sv.ping_time,
                             'range': reference_range.values,
-                    })
-    del sv_tmp 
-    del sv_obj 
+                    }) 
     return sv
 
 def expand_range(old_range, target, interval):
@@ -957,8 +955,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
 
             write_first_loop = False
         #gc memory
-        del ds
-        del df
+
         print("gc.collect memory")
         print(gc.get_count())
         print(gc.collect())
