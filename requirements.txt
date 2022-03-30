@@ -16,5 +16,5 @@ numpy
 scipy
 matplotlib
 psutil
-git+https://github.com/tomaszfurmanek/pyEcholab.git
+git+https://github.com/tomaszfurmanek/pyEcholab.git@RHT-EK80#egg=pyEcholab
 git+https://github.com/CRIMAC-WP4-Machine-learning/CRIMAC-annotationtools.git#egg=annotationtools
