@@ -48,7 +48,7 @@ import netCDF4
 
 from psutil import virtual_memory
 
-from dask.distributed import Client
+
 from annotationtools import readers
 
 from rechunker.api import rechunk
@@ -551,15 +551,15 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     # Process Sv for all other channels in parallel (if any)
     if len(other_channels) > 0:
         # Scatter raw_data_main
-        raw_data_main_i = dask.delayed(raw_data_main)
+        raw_data_main_i = raw_data_main
         worker_data = []
         for chan in other_channels:
             # Getting raw data for a frequency
-            result = dask.delayed(process_channel)(raw_obj.raw_data[chan][0], chan, raw_data_main_i, reference_range)
+            result = process_channel(raw_obj.raw_data[chan][0], chan, raw_data_main_i, reference_range)
             worker_data.append(result)
 
-        ready = dask.delayed(zip)(*worker_data)
-        channel_id, sv, trdraft, plength, angles_alongship, angles_athwartship = ready.compute()
+        ready = zip(*worker_data)
+        channel_id, sv, trdraft, plength, angles_alongship, angles_athwartship = ready
 
         # Don't forget to filter out None from the broken Sv calculation
         channel_ids = channel_ids + [x for x in channel_id if x is not None]
@@ -1014,7 +1014,7 @@ def rechunk_output(output, output_dir):
     # Do rechunk
     tmp_file = output_dir + "/temp.zarr"
     combined_file = output_dir + "/combined.zarr"
-    rechunked = rechunk(combined2, target_chunks=newchunks, max_mem='200MB', temp_store = tmp_file, target_store = combined_file, target_options = encoding)
+    rechunked = rechunk(combined2, target_chunks=newchunks, max_mem='300MB', temp_store = tmp_file, target_store = combined_file, target_options = encoding)
     rechunked.execute()
 
     # Cleaning up things
@@ -1069,7 +1069,8 @@ if __name__ == '__main__':
         do_plot = False
 
     # If number of workers is specified
-    n_workers = int(os.getenv('N_WORKERS', '2'))
+    #n_workers = int(os.getenv('N_WORKERS', '2'))
+    n_workers = 1
 
     # Get total memory
     mem = virtual_memory()
@@ -1078,14 +1079,7 @@ if __name__ == '__main__':
 
     # Setting up dask
     tmp_dir = os.path.expanduser('/dataout/tmp')
-
-    dask.config.set({'temporary_directory': tmp_dir})
-    client = Client(processes=False,
-                n_workers=n_workers,
-                threads_per_worker=1,
-                memory_limit=str(mem_use))
-    print(client)
-
+    
     # Do process
     status = raw_to_grid_multiple(raw_dir,
                             work_dir_loc = work_dir,
@@ -1099,7 +1093,7 @@ if __name__ == '__main__':
                             max_reference_range = max_ref_ran)
 
     # Cleaning up Dask
-    client.close()
+    #client.close()
     if os.path.exists(tmp_dir):
         shutil.rmtree(tmp_dir)
 
@@ -1113,19 +1107,21 @@ if __name__ == '__main__':
     if status is True:
         if out_type == "netcdf4":
             ds = xr.open_dataset(out_name + ".nc")
-            ds_id = dask.base.tokenize(ds)
+            ds_id =  ds
             ds.close()
             with netCDF4.Dataset(out_name + ".nc", mode='a') as nc:
                 nc.id = ds_id
         else:
             ds = xr.open_zarr(out_name + ".zarr")
-            ds_id = dask.base.tokenize(ds)
+            #ds_id = dask.base.tokenize(ds)
+            ds_id = ds  
             ds.close()
             zro = zr.open(out_name + ".zarr")
             zro_attrs = zro.attrs.asdict()
             print(zro_attrs)
-            zro_attrs["id"] = ds_id
-            zro.attrs.put(zro_attrs)
+            #fix lines below after dask renoval
+            #zro_attrs["id"] = ds_id
+            #zro.attrs.put(zro_attrs)
 
     if status == True and do_plot == True:
         if out_type == "netcdf4":
