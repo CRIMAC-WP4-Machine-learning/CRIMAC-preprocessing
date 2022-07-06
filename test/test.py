@@ -52,10 +52,7 @@ for i, file in enumerate(dat['testdataset']):
         dat['status'][i] = 'OK'
     except:
         print(file+' :Failed')
-        print(file+' :Failed')
         dat['sv_sum'][i] = 'NaN'
         dat['status'][i] = 'Fail'
 
-       
-dat.to_csv(path_or_buf=None, sep=',')
-
+dat.to_csv('testset_out.csv', sep=',', index=False)
