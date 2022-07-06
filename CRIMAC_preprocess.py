@@ -818,9 +818,9 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
         if out_fname == "":
             out_fname = "out"
         if output_type == "netcdf4":
-            target_fname = out_fname + "_sv.nc"
+            target_fname = out_fname + ".nc"
         elif output_type == "zarr":
-            target_fname = out_fname + "_sv.zarr"
+            target_fname = out_fname + ".zarr"
         else:
             print("Output type is not supported")
             return None
@@ -867,7 +867,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
 
     # Prepare parquet file path for work file data
     pq_writer = None
-    pq_filepath = out_fname + "_labels.parquet"
+    pq_filepath = out_fname + "_work.parquet"
 
     # For handling new files
     alternative_counter = 1
