@@ -61,6 +61,43 @@ from matplotlib.colors import LinearSegmentedColormap, Colormap
 import math
 from numcodecs import Blosc
 
+
+
+debug = false
+
+class Logger(object):
+    def __init__(self, logfile):
+        self.terminal = sys.stdout
+        self.log = open(logfile, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        # this flush method is needed for python 3 compatibility.
+        # this handles the flush command by doing nothing.
+        # you might want to specify some extra behavior here.
+        pass
+
+class errorLogger(object ):
+    def __init__(self,logfile):
+        self.terminal = sys.stderr
+        self.log = open(logfile, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        # this flush method is needed for python 3 compatibility.
+        # this handles the flush command by doing nothing.
+        # you might want to specify some extra behavior here.
+        pass
+
+
+
+
 def append_to_parquet(df, pq_filepath, pq_obj=None):
     # Must set the schema to avoid mismatched schema errors
     fields = [
@@ -455,9 +492,15 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     raw_obj = None
     try:
         raw_obj = ek_read(raw_fname)
-    except:
-        e = sys.exc_info()[0]
+        
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         print("ERROR: Something went wrong when reading the RAW file: " + str(raw_fname) + " (" + str(e) + ")")
+        if debug==1:
+            print("")
+            print(   "ERROR: RAW file " + TypeError   + NameError + ValueError)
+        print(exc_type, fname, exc_tb.tb_lineno)
     print(raw_obj)
 
     # Gracefully continue when raw read result is invalid
@@ -867,7 +910,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
 
     # Prepare parquet file path for work file data
     pq_writer = None
-    pq_filepath = out_fname + "_work.parquet"
+    pq_filepath = out_fname + "_labels.parquet"
 
     # For handling new files
     alternative_counter = 1
@@ -904,10 +947,15 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
                 try:
                     work = readers.work_reader(work_fname)
                     ann_obj = readers.work_to_annotation(work, idx_fname)
-                except:
-                    e = sys.exc_info()[0]
+                
+                except Exception as e:
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                     print("ERROR: Something went wrong when reading the WORK file: " + str(work_fname)  + " (" + str(e) + ")")
-                    print(str(e))
+                    print(exc_type, fname, exc_tb.tb_lineno)
+                    if debug:
+                        print( "ERROR: work file " +str(work_fname)+ TypeError + NameError + ValueError)
+                
                 if ann_obj is not None and ann_obj.df_ is not None:
                     # Exclude layers for now (only schools and gaps)
                     # df = ann_obj.df_[ann_obj.df_.priority != 3]
@@ -1068,6 +1116,17 @@ if __name__ == '__main__':
     else:
         do_plot = False
 
+    logging = os.getenv('LOGGING', '1')
+    if logging=='1':
+        sys.stderr = errorLogger(dataout + '/' + savename+"-errorlog.txt")
+        sys.stdout = Logger(dataout + '/' + savename+"-log.txt")
+
+    vardebug = os.getenv('DEBUG', '0')
+    if vardebug == '1':
+        debug = True
+    else:
+        debug = False
+
     # If number of workers is specified
     #n_workers = int(os.getenv('N_WORKERS', '2'))
     n_workers = 1
@@ -1129,3 +1188,11 @@ if __name__ == '__main__':
         else:
             ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
         plot_all(ds, out_name)
+    
+    # consolidate zarr and rename files
+    if out_type == "netcdf4":
+        os.system("mv " + out_name + ".nc "+out_name + "_sv.nc")
+    else:
+        zr.consolidate_metadata(out_name + ".zarr")
+        os.system("mv " + out_name + ".zarr " + out_name + "_sv.zarr")
+    
