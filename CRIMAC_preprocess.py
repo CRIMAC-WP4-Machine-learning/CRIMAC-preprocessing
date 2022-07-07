@@ -497,7 +497,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         print("ERROR: Something went wrong when reading the RAW file: " + str(raw_fname) + " (" + str(e) + ")")
-        if debug==1:
+        if debug:
             print("")
             print(   "ERROR: RAW file " + TypeError   + NameError + ValueError)
         print(exc_type, fname, exc_tb.tb_lineno)
