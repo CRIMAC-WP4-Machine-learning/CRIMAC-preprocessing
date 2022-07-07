@@ -1118,8 +1118,8 @@ if __name__ == '__main__':
 
     logging = os.getenv('LOGGING', '1')
     if logging=='1':
-        sys.stderr = errorLogger(dataout + '/' + savename+"-errorlog.txt")
-        sys.stdout = Logger(dataout + '/' + savename+"-log.txt")
+        sys.stderr = errorLogger(out_name+"-errorlog.txt")
+        sys.stdout = Logger(out_name+"-log.txt")
 
     vardebug = os.getenv('DEBUG', '0')
     if vardebug == '1':
