@@ -63,7 +63,7 @@ from numcodecs import Blosc
 
 
 
-debug = false
+debug = False
 
 class Logger(object):
     def __init__(self, logfile):
