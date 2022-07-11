@@ -1201,9 +1201,9 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
         
 if __name__ == '__main__':
 
-    parsedata(raw_dir = os.path.expanduser("/datain"),
-              work_dir = os.path.expanduser("/workin"),
-              out_dir = os.path.expanduser("/dataout"),
+    parsedata(rawdir = os.path.expanduser("/datain"),
+              workdir = os.path.expanduser("/workin"),
+              outdir = os.path.expanduser("/dataout"),
               OUTPUT_TYPE = os.getenv('OUTPUT_TYPE', 'zarr'),
               OUTPUT_NAME = os.getenv('OUTPUT_NAME', 'out'),
               MAX_RANGE_SRC = os.getenv('MAX_RANGE_SRC', 'None'),
