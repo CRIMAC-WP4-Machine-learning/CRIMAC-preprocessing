@@ -51,4 +51,5 @@ for root, subdirs, files in os.walk(walk_dir):
             print("gc.collect memory")
             print(gc.get_count())
             print(gc.collect())
+            
             print(gc.get_count())
