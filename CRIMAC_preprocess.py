@@ -953,10 +953,15 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
                     ann_obj = readers.work_to_annotation(work, idx_fname)
                 
                 except Exception as e:
-                    exc_type, exc_obj, exc_tb = sys.exc_info()
-                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                    print("ERROR: Something went wrong when reading the WORK file: " + str(work_fname)  + " (" + str(e) + ")")
-                    print(exc_type, fname, exc_tb.tb_lineno)
+                    exception_type, exception_object, exception_traceback = sys.exc_info()
+                    filename = exception_traceback.tb_frame.f_code.co_filename
+                    line_number = exception_traceback.tb_lineno
+                    print("ERROR: - Something went wrong when reading the WORK file"+ str(work_fname))
+                    print("Exception type: ", exception_type)
+                    print("File name: ", filename)
+                    print("Line number: ", line_number)
+                    print("ERROR: - Something went wrong when reading the WORK file: " + str(work_fname) + " (" + str( e) + ")")
+
                     if debug:
                         print( "ERROR: work file " +str(work_fname)+ TypeError + NameError + ValueError)
                 
@@ -1182,13 +1187,25 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
             # zro_attrs["id"] = ds_id
             # zro.attrs.put(zro_attrs)
 
-    if status == True and do_plot == True:
-        if out_type == "netcdf4":
-            ds = xr.open_dataset(out_name + ".nc")
-        else:
-            ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time': 'auto'})
-        plot_all(ds, out_name)
+    try:
+        if status == True and do_plot == True:
+            if out_type == "netcdf4":
+                ds = xr.open_dataset(out_name + ".nc")
+            else:
+                ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time': 'auto'})
+            plot_all(ds, out_name)
+    except Exception as e:
 
+        exception_type, exception_object, exception_traceback = sys.exc_info()
+        filename = exception_traceback.tb_frame.f_code.co_filename
+        line_number = exception_traceback.tb_lineno
+        print("ERROR: - Something went wrong when plotting file " + str(out_name))
+        print("Exception type: ", exception_type)
+        print("File name: ", filename)
+        print("Line number: ", line_number)
+        print("ERROR: - Something went wrong when plotting file : " + str(out_name) + " (" + str(e) + ")")
+
+    
     # consolidate zarr and rename files
     if out_type == "netcdf4":
         os.system("mv " + out_name + ".nc " + out_name + "_sv.nc")
