@@ -1199,11 +1199,11 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
         exception_type, exception_object, exception_traceback = sys.exc_info()
         filename = exception_traceback.tb_frame.f_code.co_filename
         line_number = exception_traceback.tb_lineno
-        print("ERROR: - Something went wrong when plotting file " + str(out_name))
+        print("ERROR: - Something went wrong when plotting zarr file " + str(out_name))
         print("Exception type: ", exception_type)
         print("File name: ", filename)
         print("Line number: ", line_number)
-        print("ERROR: - Something went wrong when plotting file : " + str(out_name) + " (" + str(e) + ")")
+        print("ERROR: - Something went wrong when plotting zarr file : " + str(out_name) + " (" + str(e) + ")")
 
     
     # consolidate zarr and rename files
