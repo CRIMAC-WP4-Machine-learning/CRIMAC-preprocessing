@@ -69,13 +69,13 @@ In addition, pre-processing the Marec's LSSS work files into a `pandas` datafram
 8. Optional attribute for logging LOGGING=1 (on) LOGGING=0 (off). Standard is with logging on when the attribute is not set
     
     ```bash
-    --env LOGGING=1
+    --env LOGGING=1 # enable or 0 to disable
     ```
 
 9. Optional attribute for debug (detailed stderr output) DEBUG=1 (on) DEBUG=0 (off). Standard is with debug off when the attribute is not set. DEBUG=1 will often exit on errors
     
     ```bash
-    --env DEBUG=1
+    --env DEBUG=1 # enable or 0 to disable
     ```
 
 
