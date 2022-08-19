@@ -61,6 +61,43 @@ from matplotlib.colors import LinearSegmentedColormap, Colormap
 import math
 from numcodecs import Blosc
 
+
+
+debug = False
+
+class Logger(object):
+    def __init__(self, logfile):
+        self.terminal = sys.stdout
+        self.log = open(logfile, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        # this flush method is needed for python 3 compatibility.
+        # this handles the flush command by doing nothing.
+        # you might want to specify some extra behavior here.
+        pass
+
+class errorLogger(object ):
+    def __init__(self,logfile):
+        self.terminal = sys.stderr
+        self.log = open(logfile, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        # this flush method is needed for python 3 compatibility.
+        # this handles the flush command by doing nothing.
+        # you might want to specify some extra behavior here.
+        pass
+
+
+
+
 def append_to_parquet(df, pq_filepath, pq_obj=None):
     # Must set the schema to avoid mismatched schema errors
     fields = [
@@ -455,9 +492,15 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     raw_obj = None
     try:
         raw_obj = ek_read(raw_fname)
-    except:
-        e = sys.exc_info()[0]
+        
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         print("ERROR: Something went wrong when reading the RAW file: " + str(raw_fname) + " (" + str(e) + ")")
+        if debug:
+            print("")
+            print(   "ERROR: RAW file " + TypeError   + NameError + ValueError)
+        print(exc_type, fname, exc_tb.tb_lineno)
     print(raw_obj)
 
     # Gracefully continue when raw read result is invalid
@@ -867,7 +910,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
 
     # Prepare parquet file path for work file data
     pq_writer = None
-    pq_filepath = out_fname + "_work.parquet"
+    pq_filepath = out_fname + "_labels.parquet"
 
     # For handling new files
     alternative_counter = 1
@@ -882,6 +925,10 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
         if ds is None:
             continue
 
+        pyecholab_version = get_pyecholab_rev()
+        if pyecholab_version is None:
+            pyecholab_version = "local-debug"
+            
         # Append version attributes
         ds.attrs = dict(
             name = "CRIMAC-preprocessor",
@@ -889,7 +936,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
             time = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z',
             version = os.getenv('VERSION_NUMBER', __version__),
             commit_sha = os.getenv('COMMIT_SHA', 'XXXXXXXX'),
-            pyecholab = get_pyecholab_rev()
+            pyecholab = pyecholab_version
         )
 
         # Process work file (if any)
@@ -904,10 +951,20 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
                 try:
                     work = readers.work_reader(work_fname)
                     ann_obj = readers.work_to_annotation(work, idx_fname)
-                except:
-                    e = sys.exc_info()[0]
-                    print("ERROR: Something went wrong when reading the WORK file: " + str(work_fname)  + " (" + str(e) + ")")
-                    print(str(e))
+                
+                except Exception as e:
+                    exception_type, exception_object, exception_traceback = sys.exc_info()
+                    filename = exception_traceback.tb_frame.f_code.co_filename
+                    line_number = exception_traceback.tb_lineno
+                    print("ERROR: - Something went wrong when reading the WORK file"+ str(work_fname))
+                    print("Exception type: ", exception_type)
+                    print("File name: ", filename)
+                    print("Line number: ", line_number)
+                    print("ERROR: - Something went wrong when reading the WORK file: " + str(work_fname) + " (" + str( e) + ")")
+
+                    if debug:
+                        print( "ERROR: work file " +str(work_fname)+ TypeError + NameError + ValueError)
+                
                 if ann_obj is not None and ann_obj.df_ is not None:
                     # Exclude layers for now (only schools and gaps)
                     # df = ann_obj.df_[ann_obj.df_.priority != 3]
@@ -1023,27 +1080,25 @@ def rechunk_output(output, output_dir):
     shutil.rmtree(tmp_file)
     [shutil.rmtree(fil) for fil in glob.glob(output + "_*.zarr")]
 
-if __name__ == '__main__':
-    # Default input raw dir
-    raw_dir = os.path.expanduser("/datain")
-
-    # Default input work dir
-    work_dir = os.path.expanduser("/workin")
-
+def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, MAIN_FREQ, RAW_FILE='nofile',
+              WRITE_PNG='0', LOGGING='1', DEBUGMODE='0'):
+    raw_dir = rawdir
+    work_dir = workdir
+    out_dir =outdir
     # Get the output type
-    out_type = os.getenv('OUTPUT_TYPE', 'zarr')
-    
+    out_type = OUTPUT_TYPE
+
     # raw_file for processing single files
-    raw_file = os.getenv('RAW_FILE', 'nofile')
-    
+    raw_file = RAW_FILE
+
     # Get the output name
-    out_name = os.path.expanduser("/dataout") + '/' + os.getenv('OUTPUT_NAME', 'out')
+    out_name = out_dir + '/' + OUTPUT_NAME
 
     # Get the range determination type (numeric, 'auto', or None)
     # A numeric type will force the range steps to be equal to the specified number
     # 'auto' will force the range steps to be equal to the maximum range steps of all the processed files
     # None will use the first file's main channel's range steps
-    max_ref_ran = os.getenv('MAX_RANGE_SRC', 'None')
+    max_ref_ran = MAX_RANGE_SRC
     if max_ref_ran != "auto":
         try:
             max_ref_ran = int(max_ref_ran)
@@ -1053,7 +1108,7 @@ if __name__ == '__main__':
             max_ref_ran = None
 
     # Get the frequency for the main channel
-    main_freq = os.getenv('MAIN_FREQ', '38000')
+    main_freq = MAIN_FREQ
     try:
         main_freq = int(main_freq)
     except ValueError as verr:
@@ -1062,38 +1117,47 @@ if __name__ == '__main__':
         main_freq = 38000
 
     # Get whether we should produce an overview image
-    do_plot = os.getenv('WRITE_PNG', '0')
+    do_plot = WRITE_PNG
     if do_plot == '1':
         do_plot = True
     else:
         do_plot = False
 
+    if LOGGING == '1':
+        sys.stderr = errorLogger(out_name + "-errorlog.txt")
+        sys.stdout = Logger(out_name + "-log.txt")
+
+    global debug
+    if DEBUGMODE == '1':
+        debug = True
+    else:
+        debug = False
+
     # If number of workers is specified
-    #n_workers = int(os.getenv('N_WORKERS', '2'))
+    # n_workers = int(os.getenv('N_WORKERS', '2'))
     n_workers = 1
 
     # Get total memory
     mem = virtual_memory()
     # Get maximum memory that can be used (total/2)
-    mem_use = (mem.total/2)/n_workers
+    mem_use = (mem.total / 2) / n_workers
 
     # Setting up dask
-    tmp_dir = os.path.expanduser('/dataout/tmp')
-    
+    tmp_dir =  os.path.expanduser(out_dir+'/tmp')
     # Do process
     status = raw_to_grid_multiple(raw_dir,
-                            work_dir_loc = work_dir,
-                            single_raw_file = raw_file,
-                            main_frequency = main_freq,
-                            write_output = True,
-                            out_fname = out_name,
-                            output_type = out_type,
-                            overwrite = False,
-                            resume = True,
-                            max_reference_range = max_ref_ran)
+                                  work_dir_loc=work_dir,
+                                  single_raw_file=raw_file,
+                                  main_frequency=main_freq,
+                                  write_output=True,
+                                  out_fname=out_name,
+                                  output_type=out_type,
+                                  overwrite=False,
+                                  resume=True,
+                                  max_reference_range=max_ref_ran)
 
     # Cleaning up Dask
-    #client.close()
+    # client.close()
     if os.path.exists(tmp_dir):
         shutil.rmtree(tmp_dir)
 
@@ -1101,31 +1165,70 @@ if __name__ == '__main__':
 
     # Post processing: rechunk Zarr files
     if status is True and out_type == "zarr":
-        rechunk_output(out_name, os.path.expanduser("./dataout"))
+        rechunk_output(out_name, out_dir)
 
     # Post-processing: appending a unique ID and pyecholab rev
     if status is True:
         if out_type == "netcdf4":
             ds = xr.open_dataset(out_name + ".nc")
-            ds_id =  ds
+            ds_id = ds
             ds.close()
             with netCDF4.Dataset(out_name + ".nc", mode='a') as nc:
                 nc.id = ds_id
         else:
             ds = xr.open_zarr(out_name + ".zarr")
-            #ds_id = dask.base.tokenize(ds)
-            ds_id = ds  
+            # ds_id = dask.base.tokenize(ds)
+            ds_id = ds
             ds.close()
             zro = zr.open(out_name + ".zarr")
             zro_attrs = zro.attrs.asdict()
             print(zro_attrs)
-            #fix lines below after dask renoval
-            #zro_attrs["id"] = ds_id
-            #zro.attrs.put(zro_attrs)
+            # fix lines below after dask renoval
+            # zro_attrs["id"] = ds_id
+            # zro.attrs.put(zro_attrs)
 
-    if status == True and do_plot == True:
-        if out_type == "netcdf4":
-            ds = xr.open_dataset(out_name + ".nc")
-        else:
-            ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time':'auto'})
-        plot_all(ds, out_name)
+    try:
+        if status == True and do_plot == True:
+            if out_type == "netcdf4":
+                ds = xr.open_dataset(out_name + ".nc")
+            else:
+                ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time': 'auto'})
+            plot_all(ds, out_name)
+    except Exception as e:
+
+        exception_type, exception_object, exception_traceback = sys.exc_info()
+        filename = exception_traceback.tb_frame.f_code.co_filename
+        line_number = exception_traceback.tb_lineno
+        print("ERROR: - Something went wrong when plotting zarr file " + str(out_name))
+        print("Exception type: ", exception_type)
+        print("File name: ", filename)
+        print("Line number: ", line_number)
+        print("ERROR: - Something went wrong when plotting zarr file : " + str(out_name) + " (" + str(e) + ")")
+
+    
+    # consolidate zarr and rename files
+    if out_type == "netcdf4":
+        os.system("mv " + out_name + ".nc " + out_name + "_sv.nc")
+    else:
+        zr.consolidate_metadata(out_name + ".zarr")
+        os.system("mv " + out_name + ".zarr " + out_name + "_sv.zarr")
+        
+        
+        
+        
+if __name__ == '__main__':
+
+    parsedata(rawdir = os.path.expanduser("/datain"),
+              workdir = os.path.expanduser("/workin"),
+              outdir = os.path.expanduser("/dataout"),
+              OUTPUT_TYPE = os.getenv('OUTPUT_TYPE', 'zarr'),
+              OUTPUT_NAME = os.getenv('OUTPUT_NAME', 'out'),
+              MAX_RANGE_SRC = os.getenv('MAX_RANGE_SRC', 'None'),
+              MAIN_FREQ = os.getenv('MAIN_FREQ', '38000'),
+              RAW_FILE = os.getenv('RAW_FILE', 'nofile'),
+              WRITE_PNG = os.getenv('WRITE_PNG', '0'),
+              LOGGING = os.getenv('LOGGING', '1'),
+              DEBUGMODE = os.getenv('DEBUG', '1') )
+    
+    
+ 
