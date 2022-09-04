@@ -96,6 +96,8 @@ class errorLogger(object ):
         pass
 
 
+def get_git_revision_hash() -> str:
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
 
 def append_to_parquet(df, pq_filepath, pq_obj=None):
@@ -929,6 +931,8 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
         if pyecholab_version is None:
             pyecholab_version = "local-debug"
             
+        git_rev = get_git_revision_hash()
+        
         # Append version attributes
         ds.attrs = dict(
             name = "CRIMAC-preprocessor",
@@ -936,6 +940,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
             time = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z',
             version = os.getenv('VERSION_NUMBER', __version__),
             commit_sha = os.getenv('COMMIT_SHA', 'XXXXXXXX'),
+            git_revision_hash = git_rev ,
             pyecholab = pyecholab_version
         )
 
