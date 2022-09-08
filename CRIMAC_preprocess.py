@@ -45,7 +45,7 @@ import datetime
 import gc
 import netCDF4
 
-
+from scipy import interpolate
 from psutil import virtual_memory
 
 
@@ -99,6 +99,13 @@ class errorLogger(object ):
 def get_git_revision_hash() -> str:
     return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
+def interpolate_nan(A):
+    # interpolate to fill nan values (used for distance)
+    inds = np.arange(A.shape[0])
+    good = np.where(np.isfinite(A))
+    f = interpolate.interp1d(inds[good], A[good],bounds_error=False , fill_value='extrapolate')
+    B = np.where(np.isfinite(A),A,f(inds))
+    return B
 
 def append_to_parquet(df, pq_filepath, pq_obj=None):
     # Must set the schema to avoid mismatched schema errors
@@ -318,6 +325,19 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
         position = raw_obj.nmea_data.interpolate(sv_obj, 'position')
         speed = raw_obj.nmea_data.interpolate(sv_obj, 'speed')
         distance = raw_obj.nmea_data.interpolate(sv_obj, 'distance')
+        for item in distance:
+            if len(item)==2 :
+                if 'trip_distance_nmi' in item :
+                    print((item))
+                    array_sum = np.sum(item['trip_distance_nmi'])
+                    array_has_nan = np.isnan(array_sum)
+                    print("distance has NaN " + str(array_has_nan))
+                    if array_has_nan :
+                        item['trip_distance_nmi'] = interpolate_nan(item['trip_distance_nmi'])
+                        array_sum = np.sum(item['trip_distance_nmi'])
+                        array_has_nan = np.isnan(array_sum)
+                        print("after fix : distance has NaN "+str(array_has_nan))
+
         positions = {"position": position, "speed": speed, "distance": distance}
         return [sv, trdraft, pulse_length, angle_alongship, angle_athwartship, positions]
     else:
