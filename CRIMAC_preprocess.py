@@ -950,8 +950,13 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
         pyecholab_version = get_pyecholab_rev()
         if pyecholab_version is None:
             pyecholab_version = "local-debug"
-            
-        git_rev = get_git_revision_hash()
+        
+        git_rev = "docker"
+        try:
+            git_rev = get_git_revision_hash()
+                
+        except Exception as e:
+            print("error getting git revision")
         
         # Append version attributes
         ds.attrs = dict(
