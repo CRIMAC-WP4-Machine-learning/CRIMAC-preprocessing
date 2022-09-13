@@ -95,10 +95,6 @@ class errorLogger(object ):
         # you might want to specify some extra behavior here.
         pass
 
-
-def get_git_revision_hash() -> str:
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
-
 def interpolate_nan(A):
     # interpolate to fill nan values (used for distance)
     inds = np.arange(A.shape[0])
@@ -953,7 +949,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
         
         git_rev = "docker"
         try:
-            git_rev = get_git_revision_hash()
+            git_rev =  subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
                 
         except Exception as e:
             print("error getting git revision")
