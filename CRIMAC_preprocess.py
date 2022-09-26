@@ -34,6 +34,7 @@ import sys
 import subprocess
 import re
 import dask
+import scipy.ndimage
 import numpy as np
 import xarray as xr
 import zarr as zr
@@ -233,12 +234,20 @@ def plot_all(ds, out_name, range_res = 600, time_res = 800, interpolate = False)
         else:
             sv = ds.sv.coarsen(range = mult_range, ping_time = mult_time, boundary="trim").mean(skipna=True)
 
-    vmin = sv.min(skipna=True).compute()
-    vmax = sv.max(skipna=True).compute()
-
+    #vmin = sv.min(skipna=True).compute()
+    #vmax = sv.max(skipna=True).compute()
+    vmin = sv.dropna(dim='ping_time', how='all').min(skipna=True).compute()
+    vmax = sv.dropna(dim='ping_time', how='all').max(skipna=True).compute()
+    
     # Handle duplicate frequencies
     if len(sv.frequency.data) == len(np.unique(sv.frequency.data)):
-        sv.plot(x="ping_time", y="range", row= "frequency", vmin = vmin, vmax = vmax, norm=colors.LogNorm(), cmap=simrad_cmap)
+        if len(sv.frequency.data) == 1:
+            sv.plot(x="ping_time", y="range", vmin=vmin, vmax=vmax, norm=colors.LogNorm(),
+                    cmap=simrad_cmap)
+        else:
+            sv.plot(x="ping_time", y="range", row="frequency", vmin=vmin, vmax=vmax, norm=colors.LogNorm(),
+                    cmap=simrad_cmap)
+        
     else:
         frstr = ["%.2f" % i for i in sv.frequency.data]
         new_coords = []
@@ -434,9 +443,13 @@ def _regrid(sv_s, W, n_pings):
 def regrid_sv(sv, reference_range):
     print("Channel with frequency " + str(sv.frequency.values[0]) + " range mismatch! Reference range size: " + str(reference_range.size) + " != " + str(sv.range.size))
     # Re-grid this channel sv
-    sv_obj = sv[0,]
-    W = _resampleWeight(reference_range.values, sv_obj.range)
-    sv_tmp = _regrid(sv_obj.data.transpose(), W, sv_obj.ping_time.size).transpose()
+    #    reference_range = xr.DataArray(name="range", data=reference_range, dims=['range'],
+	#                           coords={ 'range': reference_range - reference_range[0]})
+	sv_obj = sv[0,]
+	#W = _resampleWeight(reference_range.values, sv_obj.range.values)
+	#sv_tmp = _regrid(sv_obj.data.transpose(), W, sv_obj.ping_time.size).transpose()
+	sv_tmp = scipy.ndimage.zoom(sv_obj.data, zoom=[1,len(reference_range.values)/len(sv_obj.range.values)],order=0)
+    
     # Create new xarray with the same frequency
     sv = xr.DataArray(name="sv", data=np.expand_dims(sv_tmp, axis = 0), dims=['frequency', 'ping_time', 'range'],
                     coords={ 'frequency': sv.frequency,
@@ -575,14 +588,17 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     positions = sv_bundle[5]['position'][1]
     speed = sv_bundle[5]['speed'][1]
     distance = sv_bundle[5]['distance'][1]
-
+    
+    #sv_bundle[0] = sv_bundle[0].range.assign_coords(range=np.around(sv_bundle[0].range.values, 4))
+    
     # Check whether we need to set a reference range using this file's range or max_range
     if type(reference_range) == type(None):
         reference_range = sv_bundle[0].range
     else:
         # If we need to use the target range
         if isinstance(reference_range, (int, float, complex)) and not isinstance(reference_range, bool):
-            range_intervals = list(a[0]-a[1] for a in zip(sv_bundle[0].range[1:].values, sv_bundle[0].range[:-1].values))
+            #range_intervals = np.around(list(a[0]-a[1] for a in zip(sv_bundle[0].range[1:].values, sv_bundle[0].range[:-1].values)),6)
+            range_intervals = np.diff(sv_bundle[0].range.values)
             unique_range_intervals = np.unique(range_intervals)
             if len(unique_range_intervals) > 1:
                 print("ERROR: Interval is not unique!!!")
@@ -1017,7 +1033,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
                     reference_range = ds.range
             elif output_type == "zarr":
                 # Re-chunk so that we have a full range in a chunk (zarr only)
-                ds = ds.chunk({"frequency": 1, "range": ds.range.shape[0], "ping_time": 'auto'})
+                ds = ds.chunk({"frequency": 1, "range": ds.range.shape[0]})#, "ping_time": 'auto'
                 # Encode zarr output
                 compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
                 encoding = {var: {"compressor" : compressor} for var in ds.data_vars}
