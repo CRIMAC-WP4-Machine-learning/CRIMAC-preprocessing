@@ -332,22 +332,21 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
         distance = raw_obj.nmea_data.interpolate(sv_obj, 'distance')
         for item in distance:
             if len(item)==2 :
-                if 'trip_distance_nmi' in item :
+                if 'trip_distance_nmi' in item:
                     print((item))
                     array_sum = np.sum(item['trip_distance_nmi'])
                     array_has_nan = np.isnan(array_sum)
                     print("distance has NaN " + str(array_has_nan))
-                    if array_has_nan :
-			nancount = np.count_nonzero(np.isnan(item['trip_distance_nmi']))
+                    if array_has_nan:
+                        nancount = np.count_nonzero(np.isnan(item['trip_distance_nmi']))
                         distancelength = len(item['trip_distance_nmi'])
-			if distancelength> (nancount+1):
+                        if distancelength > (nancount + 1):
                             item['trip_distance_nmi'] = interpolate_nan(item['trip_distance_nmi'])
                             array_sum = np.sum(item['trip_distance_nmi'])
                             array_has_nan = np.isnan(array_sum)
-                            print("after fix : distance has NaN "+str(array_has_nan))
-			else:
-			    print("DISTANCE ERROR : distance has nuber of NaN > distancelength-2 "+str(array_has_nan))
-
+                            print("after fix : distance has NaN " + str(array_has_nan))
+                        else:
+                            print("DISTANCE ERROR : distance has nuber of NaN > distancelength-2 " + str(array_has_nan))
         positions = {"position": position, "speed": speed, "distance": distance}
         return [sv, trdraft, pulse_length, angle_alongship, angle_athwartship, positions]
     else:
