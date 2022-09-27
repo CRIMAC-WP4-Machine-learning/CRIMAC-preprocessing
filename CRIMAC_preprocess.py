@@ -333,7 +333,7 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
         for item in distance:
             if len(item)==2 :
                 if 'trip_distance_nmi' in item:
-                    print((item))
+                    #print((item))
                     array_sum = np.sum(item['trip_distance_nmi'])
                     array_has_nan = np.isnan(array_sum)
                     print("distance has NaN " + str(array_has_nan))
