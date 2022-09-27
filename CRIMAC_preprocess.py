@@ -338,10 +338,15 @@ def process_data_to_xr(raw_data, raw_obj=None, get_positions=False):
                     array_has_nan = np.isnan(array_sum)
                     print("distance has NaN " + str(array_has_nan))
                     if array_has_nan :
-                        item['trip_distance_nmi'] = interpolate_nan(item['trip_distance_nmi'])
-                        array_sum = np.sum(item['trip_distance_nmi'])
-                        array_has_nan = np.isnan(array_sum)
-                        print("after fix : distance has NaN "+str(array_has_nan))
+			nancount = np.count_nonzero(np.isnan(item['trip_distance_nmi']))
+                        distancelength = len(item['trip_distance_nmi'])
+			if distancelength> (nancount+1):
+                            item['trip_distance_nmi'] = interpolate_nan(item['trip_distance_nmi'])
+                            array_sum = np.sum(item['trip_distance_nmi'])
+                            array_has_nan = np.isnan(array_sum)
+                            print("after fix : distance has NaN "+str(array_has_nan))
+			else:
+			    print("DISTANCE ERROR : distance has nuber of NaN > distancelength-2 "+str(array_has_nan))
 
         positions = {"position": position, "speed": speed, "distance": distance}
         return [sv, trdraft, pulse_length, angle_alongship, angle_athwartship, positions]
@@ -444,18 +449,18 @@ def regrid_sv(sv, reference_range):
     print("Channel with frequency " + str(sv.frequency.values[0]) + " range mismatch! Reference range size: " + str(reference_range.size) + " != " + str(sv.range.size))
     # Re-grid this channel sv
     #    reference_range = xr.DataArray(name="range", data=reference_range, dims=['range'],
-	#                           coords={ 'range': reference_range - reference_range[0]})
-	sv_obj = sv[0,]
-	#W = _resampleWeight(reference_range.values, sv_obj.range.values)
-	#sv_tmp = _regrid(sv_obj.data.transpose(), W, sv_obj.ping_time.size).transpose()
-	sv_tmp = scipy.ndimage.zoom(sv_obj.data, zoom=[1,len(reference_range.values)/len(sv_obj.range.values)],order=0)
+    #                           coords={ 'range': reference_range - reference_range[0]})
+    sv_obj = sv[0,]
+    #W = _resampleWeight(reference_range.values, sv_obj.range.values)
+    #sv_tmp = _regrid(sv_obj.data.transpose(), W, sv_obj.ping_time.size).transpose()
+    sv_tmp = scipy.ndimage.zoom(sv_obj.data, zoom=[1,len(reference_range.values)/len(sv_obj.range.values)],order=0)
     
     # Create new xarray with the same frequency
     sv = xr.DataArray(name="sv", data=np.expand_dims(sv_tmp, axis = 0), dims=['frequency', 'ping_time', 'range'],
                     coords={ 'frequency': sv.frequency,
                             'ping_time': sv.ping_time,
                             'range': reference_range.values,
-                    }) 
+                    })
     return sv
 
 def expand_range(old_range, target, interval):
