@@ -65,6 +65,7 @@ from numcodecs import Blosc
 
 
 debug = False
+correctionpath="correction"
 
 class Logger(object):
     def __init__(self, logfile):
@@ -95,6 +96,18 @@ class errorLogger(object ):
         # this handles the flush command by doing nothing.
         # you might want to specify some extra behavior here.
         pass
+    
+def getparquetarray(raw_fname,dist1 ,column):
+    dist3=dist1
+    fileExist = os.path.exists(loadfile)
+    if fileExist :
+        table3 = pq.read_table(loadfile )
+        t3 = table3.to_pandas()[column]
+        dist2 = []
+        for d in t3 :
+            dist2.insert(len(dist2), d)
+        dist3 = np.array(dist2)
+    return dist3
 
 def interpolate_nan(A):
     # interpolate to fill nan values (used for distance)
@@ -678,17 +691,29 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
         #positions['longitude'] = positions['longitude'][pidx]
         #speed['spd_over_grnd_kts'] = speed['spd_over_grnd_kts'][pidx]
         #distance['trip_distance_nmi'] = distance['trip_distance_nmi'][pidx]
-
+    print("fix distance and ping errors:")
+    
+    filenameraw = os.path.basename(raw_fname)
+    loadfile = os.path.join(correctionpath, filenameraw.replace(".raw", "_dist.parquet"))
+    distancenew=getparquetarray( loadfile,distance['trip_distance_nmi'],'distance')
+    
+    loadfile = raw_fname.replace(".raw", "_pings.parquet")
+    filenameraw = os.path.basename(raw_fname)
+    loadfile = os.path.join(correctionpath, filenameraw.replace(".raw", "_pings.parquet"))
+    pingtimenew=getparquetarray( loadfile,positions['ping_time'],'ping_time')
+    
     # Get position speed distance in a dataset to ease alignments (if needed, as below)
     da_pos = xr.Dataset(
                 data_vars=dict(
-                    distance=(["ping_time"], distance['trip_distance_nmi']),
+                    distance=(["ping_time"], distancenew),
+                    distanceraw=(["ping_time"], distance['trip_distance_nmi']),
                     speed=(["ping_time"], speed['spd_over_grnd_kts']),
                     latitude=(["ping_time"], positions['latitude']),
-                    longitude=(["ping_time"], positions['longitude'])
+                    longitude=(["ping_time"], positions['longitude']),
+                    pingtimeraw=(["ping_time"],positions['ping_time'])
                 ),
                 coords=dict(
-                    ping_time = positions['ping_time']
+                    ping_time = pingtimenew
                 )
             )
 
@@ -710,11 +735,13 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             heading=(["ping_time"], obj_heading),
             speed=(["ping_time"], da_pos.speed.data),
             distance=(["ping_time"], da_pos.distance.data),
+            distanceraw=(["ping_time"], da_pos.distanceraw.data),
+            ping_time_raw=(["ping_time"], da_pos.pingtimeraw.data),
             pulse_length=(["frequency"], plength_list)
             ),
         coords=dict(
             frequency = da_sv.frequency,
-            ping_time = da_sv.ping_time,
+            ping_time = pingtimenew,
             range = da_sv.range,
             )
     )
@@ -1131,6 +1158,7 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
     raw_dir = rawdir
     work_dir = workdir
     out_dir =outdir
+    correctionpath = os.path.join(out_dir, "correction") 
     # Get the output type
     out_type = OUTPUT_TYPE
 
