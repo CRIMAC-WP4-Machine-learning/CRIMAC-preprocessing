@@ -99,9 +99,9 @@ class errorLogger(object ):
     
 def getparquetarray(raw_fname,dist1 ,column):
     dist3=dist1
-    fileExist = os.path.exists(loadfile)
+    fileExist = os.path.exists(raw_fname)
     if fileExist :
-        table3 = pq.read_table(loadfile )
+        table3 = pq.read_table(raw_fname)
         t3 = table3.to_pandas()[column]
         dist2 = []
         for d in t3 :
