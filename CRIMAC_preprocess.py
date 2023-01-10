@@ -98,7 +98,8 @@ class errorLogger(object ):
         pass
     
 def getparquetarray(raw_fname,dist1 ,column):
-    dist3=dist1
+    dist3=dist1 
+    print(" "+ raw_fname +" "+ column)
     fileExist = os.path.exists(raw_fname)
     if fileExist :
         table3 = pq.read_table(raw_fname)
@@ -107,6 +108,8 @@ def getparquetarray(raw_fname,dist1 ,column):
         for d in t3 :
             dist2.insert(len(dist2), d)
         dist3 = np.array(dist2)
+    else:
+        print("file not found")
     return dist3
 
 def interpolate_nan(A):
