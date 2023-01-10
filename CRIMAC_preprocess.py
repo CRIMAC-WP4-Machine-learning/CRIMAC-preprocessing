@@ -1161,7 +1161,7 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
     raw_dir = rawdir
     work_dir = workdir
     out_dir =outdir
-    correctionpath = out_dir + '/' + "correction") 
+    correctionpath = out_dir + '/' + "correction"
     # Get the output type
     out_type = OUTPUT_TYPE
 
