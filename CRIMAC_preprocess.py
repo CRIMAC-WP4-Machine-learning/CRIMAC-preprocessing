@@ -65,7 +65,7 @@ from numcodecs import Blosc
 
 
 debug = False
-correctionpath="correction"
+correctionpath="/dataout/correction"
 
 class Logger(object):
     def __init__(self, logfile):
@@ -1039,7 +1039,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
                     print("ERROR: - Something went wrong when reading the WORK file: " + str(work_fname) + " (" + str( e) + ")")
 
                     if debug:
-                        print( "ERROR: work file " +str(work_fname)+ TypeError + NameError + ValueError)
+                        print( "ERROR: work file " +str(work_fname)+   NameError + ValueError)
                 
                 if ann_obj is not None and ann_obj.df_ is not None:
                     # Exclude layers for now (only schools and gaps)
