@@ -53,7 +53,7 @@ from psutil import virtual_memory
 from annotationtools import readers
 
 from rechunker.api import rechunk
-
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
