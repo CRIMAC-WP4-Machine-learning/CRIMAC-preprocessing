@@ -106,6 +106,8 @@ def getparquetarray(raw_fname,dist1 ,column):
         t3 = table3.to_pandas()[column]
         dist2 = []
         for d in t3 :
+            if isinstance( d,pd._libs.tslibs.timestamps.Timestamp):
+                d=d.to_numpy()
             dist2.insert(len(dist2), d)
         dist3 = np.array(dist2)
     else:
