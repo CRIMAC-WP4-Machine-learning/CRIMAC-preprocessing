@@ -711,11 +711,11 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     da_pos = xr.Dataset(
                 data_vars=dict(
                     distance=(["ping_time"], distancenew),
-                    distanceraw=(["ping_time"], distance['trip_distance_nmi']),
+                    #distanceraw=(["ping_time"], distance['trip_distance_nmi']),
                     speed=(["ping_time"], speed['spd_over_grnd_kts']),
                     latitude=(["ping_time"], positions['latitude']),
                     longitude=(["ping_time"], positions['longitude']),
-                    pingtimeraw=(["ping_time"],positions['ping_time'])
+                    #pingtimeraw=(["ping_time"],positions['ping_time'])
                 ),
                 coords=dict(
                     ping_time = pingtimenew
@@ -740,8 +740,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             heading=(["ping_time"], obj_heading),
             speed=(["ping_time"], da_pos.speed.data),
             distance=(["ping_time"], da_pos.distance.data),
-            distanceraw=(["ping_time"], da_pos.distanceraw.data),
-            ping_time_raw=(["ping_time"], da_pos.pingtimeraw.data),
+            #distanceraw=(["ping_time"], da_pos.distanceraw.data),
+            #ping_time_raw=(["ping_time"], da_pos.pingtimeraw.data),
             pulse_length=(["frequency"], plength_list)
             ),
         coords=dict(
