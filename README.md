@@ -10,19 +10,19 @@ The processing is split into three separate steps. The steps needs to be run in 
 
 The first step is to generate an index-time file. The output from this step is a parquet file containing the individual input file names and associated ping and time numbers. In cases where there are discontinouties in the time or distance variable, a new time and distance variable is generated. This new variable is used when generating time and distance in the subsequent steps. The parquet file can be used to look up the original data.
 
-The output of this step is the parquet file: ´<OUTPUT_NAME>_pingdist.parquet´
+The output of this step is the parquet file: `<OUTPUT_NAME>_pingdist.parquet`
 
 ### Step 2: Generate gridded sv data
 
 This step reads the .raw files and generate a gridded version of the data such that the dimension is time, range and frequency. If the range resolution is similar between the channels, the data is simply stacked. In cases where the data have different range resolution, the data is regridded onto the grid of the main frequency (MAIN_FREQ).
 
-The output of this step is the Zarr/NetCDF file: ´<OUTPUT_NAME>_sv.zarr´ or ´<OUTPUT_NAME>_sv.nc´.
+The output of this step is the Zarr/NetCDF file: `<OUTPUT_NAME>_sv.zarr` or `<OUTPUT_NAME>_sv.nc`.
 
 ### Step 3: Label data
 
-This steps first convert Marec LSSS' work files into a `parquet` file containing the annotations using the CRIMAC-annotationtools. These data are independent of the gridded data in step 2. Next the data is overlayed on the grid from step 2, and a pixel wise annotation that matches the grid in step 2 is generated.
+This steps first convert Marec LSSS' work files into a parquet file containing the annotations using the CRIMAC-annotationtools. These data are independent of the gridded data in step 2. Next the data is overlayed on the grid from step 2, and a pixel wise annotation that matches the grid in step 2 is generated.
 
-The output of this step is the parquet file: ´<OUTPUT_NAME>_labels.parquet´ and the Zarr/NetCDF file: ´<OUTPUT_NAME>_labels.zarr´ or ´<OUTPUT_NAME>_labels.nc´.
+The output of this step is the parquet file: `<OUTPUT_NAME>_labels.parquet` and the Zarr/NetCDF file: `<OUTPUT_NAME>_labels.zarr` or `<OUTPUT_NAME>_labels.nc`.
 
 ## Features
 
