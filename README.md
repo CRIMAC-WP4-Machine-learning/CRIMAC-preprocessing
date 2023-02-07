@@ -1,8 +1,28 @@
 # This repository contain the code to preprocess acoustic data for the CRIMAC project
 
-A docker image to pre-process a collection of SIMRAD's EK60/EK80 acoustic raw files into an `xarray` dataset using [pyEcholab](https://github.com/CI-CMG/PyEcholab) package. The dataset is then stored as `zarr`/`netcdf` files on disk.
+The repository contain code to pre-process a collection of SIMRAD's EK60/EK80 acoustic raw files and LSSS interpretaion masks into an `xarray` datasets using [pyEcholab](https://github.com/CI-CMG/PyEcholab) and the CRIMAC annotationtools (https://github.com/CRIMAC-WP4-Machine-learning/CRIMAC-annotationtools) . The dataset is then stored as `zarr` or `netcdf` files on disk.
 
-In addition, pre-processing the Marec's LSSS work files into a `pandas` dataframe as a `parquet` file is now supported (see the disk mounting option below).
+## Processing steps
+
+The processing is split into three separate steps. The steps needs to be run in order, but later steps can be rerun independent of the first step.
+
+### Step 1: Index files
+
+The first step is to generate an index-time file. The output from this step is a parquet file containing the individual input file names and associated ping and time numbers. In cases where there are discontinouties in the time or distance variable, a new time and distance variable is generated. This new variable is used when generating time and distance in the subsequent steps. The parquet file can be used to look up the original data.
+
+The output of this step is the parquet file: ´<OUTPUT_NAME>_pingdist.parquet´
+
+### Step 2: Generate gridded sv data
+
+This step reads the .raw files and generate a gridded version of the data such that the dimension is time, range and frequency. If the range resolution is similar between the channels, the data is simply stacked. In cases where the data have different range resolution, the data is regridded onto the grid of the main frequency (MAIN_FREQ).
+
+The output of this step is the Zarr/NetCDF file: ´<OUTPUT_NAME>_sv.zarr´ or ´<OUTPUT_NAME>_sv.nc´.
+
+### Step 3: Label data
+
+This steps first convert Marec LSSS' work files into a `parquet` file containing the annotations using the CRIMAC-annotationtools. These data are independent of the gridded data in step 2. Next the data is overlayed on the grid from step 2, and a pixel wise annotation that matches the grid in step 2 is generated.
+
+The output of this step is the parquet file: ´<OUTPUT_NAME>_labels.parquet´ and the Zarr/NetCDF file: ´<OUTPUT_NAME>_labels.zarr´ or ´<OUTPUT_NAME>_labels.nc´.
 
 ## Features
 
@@ -15,6 +35,14 @@ In addition, pre-processing the Marec's LSSS work files into a `pandas` datafram
 
 ## Options to run
 
+### Using local Python installation
+
+
+#### Example
+
+
+
+### Using Docker
 1. Two directories need to be mounted:
 
     1. `/datain` should be mounted to the data directory where the `.raw` files are located.
@@ -79,7 +107,7 @@ In addition, pre-processing the Marec's LSSS work files into a `pandas` datafram
     ```
 
 
-## Example
+#### Example
 
 ```bash
 
