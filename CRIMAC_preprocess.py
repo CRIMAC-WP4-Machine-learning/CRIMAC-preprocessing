@@ -624,6 +624,7 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
             unique_range_intervals = np.unique(range_intervals)
             if len(unique_range_intervals) > 1:
                 print("ERROR: Interval is not unique!!!")
+                unique_range_intervals = np.array(unique_range_intervals.item(0))
             reference_range = expand_range(sv_bundle[0].range, reference_range, unique_range_intervals)
 
         # Check if we also need to regrid this main channel
