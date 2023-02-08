@@ -124,3 +124,8 @@ docker run -it \
 crimac/preprocessor
 
 ```
+#### manual docker build
+
+git clone https://github.com/CRIMAC-WP4-Machine-learning/CRIMAC-preprocessing.git
+cd CRIMAC-preprocessing/
+docker build --build-arg=commit_sha=$(git rev-parse HEAD) --no-cache --tag crimac-preprocessor20230208 .
