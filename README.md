@@ -16,7 +16,7 @@ The output of this step are the parquet files:
 This file contains the uncorrected ping_time and distance values for the survey
 
 <OUTPUT_NAME>_pingdistcorrected.parquet     
-This file contains the uncorrected ping_time and distance values for the survey
+This file contains the corrected ping_time and distance values for the survey
 
 The corrected parquet file contains the 3 following columns "raw_file" ,  "distance" and "ping_time"
 This correction file is automatically read in step 2 
