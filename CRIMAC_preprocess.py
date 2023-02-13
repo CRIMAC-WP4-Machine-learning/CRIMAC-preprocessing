@@ -97,10 +97,10 @@ class errorLogger(object ):
         # you might want to specify some extra behavior here.
         pass
     
-def getparquetarray(raw_fname,dist1 ,column):
+def getparquetarray(out_filename,raw_fname,dist1 ,column):
     print(len(dist1))
     dist3=dist1 
-    loadfile = out_name+"_pingdistcorrected.parquet"
+    loadfile = out_filename+"_pingdistcorrected.parquet"
     print(loadfile+" "+ raw_fname +" "+ column)
     fileExist = os.path.exists(loadfile)
     if fileExist :
@@ -542,7 +542,7 @@ def process_channel(raw_data, channel, raw_data_main, reference_range):
 
     return [channel] + sv_bundle
 
-def process_raw_file(raw_fname, main_frequency, reference_range = None):
+def process_raw_file(out_fname,raw_fname, main_frequency, reference_range = None):
     # Read input raw
     print("\n\nNow processing file: " + raw_fname)
     raw_obj = None
@@ -703,8 +703,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     print("fix distance and ping errors:")
     
     filenameraw = os.path.basename(raw_fname)
-    distancenew=getparquetarray( filenameraw,distance['trip_distance_nmi'],'distance')
-    pingtimenew=getparquetarray( filenameraw,positions['ping_time'],'ping_time')
+    distancenew=getparquetarray(out_fname, filenameraw,distance['trip_distance_nmi'],'distance')
+    pingtimenew=getparquetarray(out_fname, filenameraw,positions['ping_time'],'ping_time')
     
     # Get position speed distance in a dataset to ease alignments (if needed, as below)
     da_pos = xr.Dataset(
@@ -988,7 +988,7 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
         base_fname, _ = os.path.splitext(fn)
 
         # Process single file
-        ds = process_raw_file(dir_loc + "/" + fn, main_frequency, reference_range)
+        ds = process_raw_file(out_fname, dir_loc + "/" + fn, main_frequency, reference_range)
 
         # Continue on invalid data
         if ds is None:
