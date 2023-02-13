@@ -10,14 +10,16 @@ The processing is split into three separate steps. The steps needs to be run in 
 
 The first step is to generate an index-time file. The output from this step is a parquet file containing the individual input file names and associated ping and time numbers. In cases where there are discontinouties in the time or distance variable, a new time and distance variable is generated. This new variable is used when generating time and distance in the subsequent steps. The parquet file can be used to look up the original data.
 
-The output of this step are the parquet files: `
-<OUTPUT_NAME>_pingdist.parquet` 
+The output of this step are the parquet files: 
+<OUTPUT_NAME>_pingdist.parquet
 that contains the uncorrected ping_time and distance values for the survey
 
 <OUTPUT_NAME>_pingdistcorrected.parquet
 that contains the uncorrected ping_time and distance values for the survey
+
 The corrected parquet file contains the 3 following columns "raw_file" ,  "distance" and "ping_time"
 This correction file is automatically read in step 2 
+
 
 
 ### Step 2: Generate gridded sv data
