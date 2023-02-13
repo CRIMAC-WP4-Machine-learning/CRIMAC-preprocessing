@@ -98,18 +98,21 @@ class errorLogger(object ):
         pass
     
 def getparquetarray(raw_fname,dist1 ,column):
+    print(len(dist1))
     dist3=dist1 
-    print(" "+ raw_fname +" "+ column)
-    fileExist = os.path.exists(raw_fname)
+    loadfile = out_name+"_pingdistcorrected.parquet"
+    print(loadfile+" "+ raw_fname +" "+ column)
+    fileExist = os.path.exists(loadfile)
     if fileExist :
-        table3 = pq.read_table(raw_fname)
-        t3 = table3.to_pandas()[column]
-        dist2 = []
-        for d in t3 :
-            if isinstance( d,pd._libs.tslibs.timestamps.Timestamp):
-                d=d.to_numpy()
-            dist2.insert(len(dist2), d)
-        dist3 = np.array(dist2)
+        table = pq.read_table(loadfile)
+        df= table.to_pandas()
+        filter_column = "raw_file"
+        filter_value = raw_fname
+        filtered_df = df.loc[df[filter_column] == filter_value]
+        column_name = column
+        filtered_col = filtered_df[column_name]
+        dist3 = filtered_col.to_numpy()
+        print(len(dist3))
     else:
         print("file not found")
     return dist3
@@ -700,13 +703,8 @@ def process_raw_file(raw_fname, main_frequency, reference_range = None):
     print("fix distance and ping errors:")
     
     filenameraw = os.path.basename(raw_fname)
-    loadfile = os.path.join(correctionpath, filenameraw.replace(".raw", "_dist.parquet"))
-    distancenew=getparquetarray( loadfile,distance['trip_distance_nmi'],'distance')
-    
-    loadfile = raw_fname.replace(".raw", "_pings.parquet")
-    filenameraw = os.path.basename(raw_fname)
-    loadfile = os.path.join(correctionpath, filenameraw.replace(".raw", "_pings.parquet"))
-    pingtimenew=getparquetarray( loadfile,positions['ping_time'],'ping_time')
+    distancenew=getparquetarray( filenameraw,distance['trip_distance_nmi'],'distance')
+    pingtimenew=getparquetarray( filenameraw,positions['ping_time'],'ping_time')
     
     # Get position speed distance in a dataset to ease alignments (if needed, as below)
     da_pos = xr.Dataset(
