@@ -49,6 +49,7 @@ import netCDF4
 from scipy import interpolate
 from psutil import virtual_memory
 
+import annotationtools.crimactools.correct_distping as correct_distping
 
 from annotationtools import readers
 
@@ -110,6 +111,8 @@ def getparquetarray(out_filename,raw_fname,dist1 ,column):
         filter_value = raw_fname
         filtered_df = df.loc[df[filter_column] == filter_value]
         column_name = column
+        print(df)
+        print(column_name )
         filtered_col = filtered_df[column_name]
         dist3 = filtered_col.to_numpy()
         print(len(dist3))
@@ -774,6 +777,8 @@ def raw_to_grid_single(raw_fname, main_frequency = 38000, write_output = False, 
             target_fname = out_fname + ".nc"
         elif output_type == "zarr":
             target_fname = out_fname + ".zarr"
+        elif output_type == "parquet":
+            target_fname = out_fname + "_pingdist.temp.parquet"
         else:
             print("Output type is not supported")
             return False
@@ -794,7 +799,7 @@ def raw_to_grid_single(raw_fname, main_frequency = 38000, write_output = False, 
     
     print("Created dataset:")
     print(ds)
-
+    
     if do_write == True:
         if output_type == "netcdf4":
             comp = dict(zlib=True, complevel=5)
@@ -804,6 +809,29 @@ def raw_to_grid_single(raw_fname, main_frequency = 38000, write_output = False, 
             compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
             encoding = {var: {"compressor" : compressor} for var in ds.data_vars}
             ds.to_zarr(target_fname, mode="w", encoding=encoding)
+        elif output_type == "parquet":
+            print("parquet")
+            
+            
+            savedf = pd.DataFrame(data={'raw_file': ds["raw_file"],
+                                    'distance': ds["distance"],
+                                    'ping_time': ds["ping_time"],
+                                    'speed': ds["speed"],
+                                    'latitude': ds["latitude"],
+                                    'longitude': ds["longitude"] })
+                
+            # Convert if necessary
+            savedf = savedf.astype({'raw_file': str,
+                                    'distance': 'float64',
+                                    'ping_time': 'datetime64[ns]',
+                                    'speed': 'float64',
+                                    'latitude': 'float64',
+                                    'longitude': 'float64'})
+            pq_writer = None
+            pq_filepath = out_fname
+            pq_writer = write_to_parquet(ds, pq_filepath, pq_writer)
+            
+            
         else:
             print("Output type is not supported")
     
@@ -933,6 +961,10 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
             target_fname = out_fname + ".nc"
         elif output_type == "zarr":
             target_fname = out_fname + ".zarr"
+        elif output_type == "parquet":
+            target_fname = out_fname + "_pingdist.temp.parquet"
+            print("making parquet for correction of ping_time and distance")
+            print(target_fname)
         else:
             print("Output type is not supported")
             return None
@@ -977,6 +1009,8 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
         # Nothing to do here
         return None
 
+    pq_writercorrection = None
+    
     # Prepare parquet file path for work file data
     pq_writer = None
     pq_filepath = out_fname + "_labels.parquet"
@@ -1015,40 +1049,41 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
             git_revision_hash = git_rev ,
             pyecholab = pyecholab_version
         )
-
-        # Process work file (if any)
-        work_fname = work_dir_loc + "/" + base_fname + ".work"
-        is_exists_work = os.path.isfile(work_fname)
-        if is_exists_work:
-            idx_fname = dir_loc + "/" + base_fname + ".idx"
-            is_exists_idx = os.path.isfile(idx_fname)
-            if is_exists_idx:
-                # Process work file
-                ann_obj = None
-                try:
-                    work = readers.work_reader(work_fname)
-                    ann_obj = readers.work_to_annotation(work, idx_fname)
-                
-                except Exception as e:
-                    exception_type, exception_object, exception_traceback = sys.exc_info()
-                    filename = exception_traceback.tb_frame.f_code.co_filename
-                    line_number = exception_traceback.tb_lineno
-                    print("ERROR: - Something went wrong when reading the WORK file"+ str(work_fname))
-                    print("Exception type: ", exception_type)
-                    print("File name: ", filename)
-                    print("Line number: ", line_number)
-                    print("ERROR: - Something went wrong when reading the WORK file: " + str(work_fname) + " (" + str( e) + ")")
-
-                    if debug:
-                        print( "ERROR: work file " +str(work_fname)+   NameError + ValueError)
-                
-                if ann_obj is not None and ann_obj.df_ is not None:
-                    # Exclude layers for now (only schools and gaps)
-                    # df = ann_obj.df_[ann_obj.df_.priority != 3]
+        if not output_type == "parquet":
+            
+            # Process work file (if any)
+            work_fname = work_dir_loc + "/" + base_fname + ".work"
+            is_exists_work = os.path.isfile(work_fname)
+            if is_exists_work:
+                idx_fname = dir_loc + "/" + base_fname + ".idx"
+                is_exists_idx = os.path.isfile(idx_fname)
+                if is_exists_idx:
+                    # Process work file
+                    ann_obj = None
+                    try:
+                        work = readers.work_reader(work_fname)
+                        ann_obj = readers.work_to_annotation(work, idx_fname)
+                        
+                    except Exception as e:
+                        exception_type, exception_object, exception_traceback = sys.exc_info()
+                        filename = exception_traceback.tb_frame.f_code.co_filename
+                        line_number = exception_traceback.tb_lineno
+                        print("ERROR: - Something went wrong when reading the WORK file"+ str(work_fname))
+                        print("Exception type: ", exception_type)
+                        print("File name: ", filename)
+                        print("Line number: ", line_number)
+                        print("ERROR: - Something went wrong when reading the WORK file: " + str(work_fname) + " (" + str( e) + ")")
+                        
+                        if debug:
+                            print( "ERROR: work file " +str(work_fname)+   NameError + ValueError)
                     
-                    # Layers schools and gaps
-                    df = ann_obj.df_
-                    pq_writer = append_to_parquet(df, pq_filepath, pq_writer)
+                    if ann_obj is not None and ann_obj.df_ is not None:
+                        # Exclude layers for now (only schools and gaps)
+                        # df = ann_obj.df_[ann_obj.df_.priority != 3]
+                        
+                        # Layers schools and gaps
+                        df = ann_obj.df_
+                        pq_writer = append_to_parquet(df, pq_filepath, pq_writer)
 
         if do_write == True:
             if output_type == "netcdf4":
@@ -1084,6 +1119,28 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
                     ds.to_zarr(target_fname, mode="w", encoding=encoding)
                     # Propagate range to the rest of the files
                     reference_range = ds.range
+            elif output_type == "parquet":
+                
+                savedf = pd.DataFrame(data={'raw_file': ds["raw_file"],
+                                    'distance': ds["distance"],
+                                    'ping_time': ds["ping_time"],
+                                    'speed': ds["speed"],
+                                    'latitude': ds["latitude"],
+                                    'longitude': ds["longitude"] })
+                
+                # Convert if necessary
+                savedf = savedf.astype({'raw_file': str,
+                                    'distance': 'float64',
+                                    'ping_time': 'datetime64[ns]',
+                                    'speed': 'float64',
+                                    'latitude': 'float64',
+                                    'longitude': 'float64'})
+                
+                pq_filepath =  target_fname
+                pq_writercorrection  = write_to_parquet(savedf, pq_filepath, pq_writercorrection )
+                
+                
+                
             else:
                 print("Output type is not supported")
 
@@ -1095,6 +1152,29 @@ def raw_to_grid_multiple(dir_loc,  work_dir_loc, single_raw_file = 'nofile', mai
         print(gc.collect())
         print(gc.get_count())
     return True
+
+def write_to_parquet(df, pq_filepath, pq_obj=None):
+    # Must set the schema to avoid mismatched schema errors
+    fields = [ 
+ 
+        pa.field('raw_file', pa.string()),
+        pa.field('distance', pa.float64()),
+        pa.field('ping_time', pa.timestamp('ns')),
+        pa.field('speed', pa.float64()),
+        pa.field('latitude', pa.float64()),
+        pa.field('longitude', pa.float64())
+        #pa.float64()
+    ]
+    # pa.timestamp('ns')
+     
+    print(df)
+    df_schema = pa.schema(fields)
+
+    pa_tbl = pa.Table.from_pandas(df, schema=df_schema, preserve_index=False)
+    if pq_obj == None:
+        pq_obj = pq.ParquetWriter(pq_filepath, pa_tbl.schema)
+    pq_obj.write_table(table=pa_tbl)
+    return pq_obj
 
 def get_pyecholab_rev():
     reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
@@ -1253,7 +1333,7 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
             ds.close()
             with netCDF4.Dataset(out_name + ".nc", mode='a') as nc:
                 nc.id = ds_id
-        else:
+        elif out_type == "zarr":
             ds = xr.open_zarr(out_name + ".zarr")
             # ds_id = dask.base.tokenize(ds)
             ds_id = ds
@@ -1269,9 +1349,11 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
         if status == True and do_plot == True:
             if out_type == "netcdf4":
                 ds = xr.open_dataset(out_name + ".nc")
-            else:
+                plot_all(ds, out_name)
+            elif out_type == "zarr":
                 ds = xr.open_zarr(out_name + ".zarr", chunks={'ping_time': 'auto'})
-            plot_all(ds, out_name)
+                plot_all(ds, out_name)
+
     except Exception as e:
 
         exception_type, exception_object, exception_traceback = sys.exc_info()
@@ -1287,10 +1369,12 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
     # consolidate zarr and rename files
     if out_type == "netcdf4":
         os.system("mv " + out_name + ".nc " + out_name + "_sv.nc")
-    else:
+    elif out_type == "zarr":
         zr.consolidate_metadata(out_name + ".zarr")
         os.system("mv " + out_name + ".zarr " + out_name + "_sv.zarr")
-        
+    elif out_type == "parquet":
+        os.system("mv " + out_name + "_pingdist.temp.parquet " + out_name + "_pingdist.parquet")
+        correct_distping.correct_parquet(out_name + "_pingdist.parquet")
         
         
         
@@ -1307,6 +1391,3 @@ if __name__ == '__main__':
               WRITE_PNG = os.getenv('WRITE_PNG', '0'),
               LOGGING = os.getenv('LOGGING', '1'),
               DEBUGMODE = os.getenv('DEBUG', '1') )
-    
-    
- 
