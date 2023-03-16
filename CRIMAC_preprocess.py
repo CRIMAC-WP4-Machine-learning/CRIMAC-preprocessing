@@ -50,7 +50,7 @@ from scipy import interpolate
 from psutil import virtual_memory
 
 
-from annotationtools import crimactools
+from annotationtools.crimactools.correct_distping import correct_parquet
 from annotationtools import readers
 
 from rechunker.api import rechunk
@@ -1374,7 +1374,7 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
         os.system("mv " + out_name + ".zarr " + out_name + "_sv.zarr")
     elif out_type == "parquet":
         os.system("mv " + out_name + "_pingdist.temp.parquet " + out_name + "_pingdist.parquet")
-        crimactools.correct_parquet(out_name + "_pingdist.parquet")
+        correct_parquet(out_name + "_pingdist.parquet")
         
         
         
