@@ -29,6 +29,9 @@ Step 1 is run with the setting OUTPUT_TYPE=parquet
 
 This step reads the .raw files and generate a gridded version of the data such that the dimension is time, range and frequency. If the range resolution is similar between the channels, the data is simply stacked. In cases where the data have different range resolution, the data is regridded onto the grid of the main frequency (MAIN_FREQ).
 
+Use the same <OUTPUT_NAME> as in step 1 if you want to use the corrected ping_time and distance from step 1
+If the parquetfile from step 1 with the corrected values is not found, step 2 will use the original ping_time and distance from the raw files
+
 The output of this step is the Zarr/NetCDF file: `<OUTPUT_NAME>_sv.zarr` or `<OUTPUT_NAME>_sv.nc`.
 
 ### Step 3: Label data
@@ -84,7 +87,7 @@ The output of this step is the parquet file: `<OUTPUT_NAME>_labels.parquet` and 
 4. Select output type, `zarr` and `NetCDF4` are supported:
 
     ```bash
-    #for step 1
+    #for step 1 . This creates the file <OUTPUT_NAME>_pingdistcorrected.parquet that is used in step 2
     --env OUTPUT_TYPE=parquet
     
     #for step 2
@@ -96,6 +99,7 @@ The output of this step is the parquet file: `<OUTPUT_NAME>_labels.parquet` and 
 5. Select file name output (optional,  default to `out.<zarr/nc>`)
 
     ```bash
+    # use the same <OUTPUT_NAME> in both step 1 and 2
     --env OUTPUT_NAME=S2020842
     ```
 
