@@ -49,8 +49,8 @@ import netCDF4
 from scipy import interpolate
 from psutil import virtual_memory
 
-from annotationtools.crimactools import correct_distping
 
+import annotationtools.crimactools.correct_distping as correct_distping
 from annotationtools import readers
 
 from rechunker.api import rechunk
