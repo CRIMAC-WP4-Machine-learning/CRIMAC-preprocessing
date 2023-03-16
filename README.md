@@ -21,6 +21,8 @@ This file contains the corrected ping_time and distance values for the survey
 The corrected parquet file contains the 3 following columns "raw_file" ,  "distance" and "ping_time"
 This correction file is automatically read in step 2 
 
+Step 1 is run with the setting OUTPUT_TYPE=parquet
+
 
 
 ### Step 2: Generate gridded sv data
@@ -82,6 +84,10 @@ The output of this step is the parquet file: `<OUTPUT_NAME>_labels.parquet` and 
 4. Select output type, `zarr` and `NetCDF4` are supported:
 
     ```bash
+    #for step 1
+    --env OUTPUT_TYPE=parquet
+    
+    #for step 2
     --env OUTPUT_TYPE=zarr
 
     --env OUTPUT_TYPE=netcdf4
@@ -117,8 +123,25 @@ The output of this step is the parquet file: `<OUTPUT_NAME>_labels.parquet` and 
     --env DEBUG=1 # enable or 0 to disable
     ```
 
+#### Example step 1
 
-#### Example
+```bash
+
+docker run -it \
+-v /data/cruise_data/2020/S2020842_PHELMERHANSSEN_1173/ACOUSTIC/EK60/EK60_RAWDATA:/datain \
+-v /data/cruise_data/2020/S2020842_PHELMERHANSSEN_1173/ACOUSTIC/LSSS/WORK:/workin \
+-v /localscratch/ibrahim-echo/out:/dataout \
+--security-opt label=disable \
+--env OUTPUT_TYPE=parquet \
+--env MAIN_FREQ=38000 \
+--env MAX_RANGE_SRC=500 \
+--env OUTPUT_NAME=S2020842 \
+--env WRITE_PNG=0 \
+crimac/preprocessor
+
+```
+
+#### Example step 2
 
 ```bash
 
