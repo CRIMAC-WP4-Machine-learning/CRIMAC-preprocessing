@@ -131,6 +131,7 @@ def interpolate_nan(A):
 def append_to_parquet(df, pq_filepath, pq_obj=None):
     # Must set the schema to avoid mismatched schema errors
     fields = [
+        pa.field('ping_index', pa.int64()),
         pa.field('ping_time', pa.timestamp('ns')),
         pa.field('mask_depth_upper', pa.float64()),
         pa.field('mask_depth_lower', pa.float64()),
@@ -139,6 +140,9 @@ def append_to_parquet(df, pq_filepath, pq_obj=None):
         pa.field('proportion', pa.float64()),
         pa.field('object_id', pa.string()),
         pa.field('channel_id', pa.string())
+        pa.field('upperThreshold', pa.float64()),
+        pa.field('lowerThreshold', pa.float64()),
+        pa.field('raw_file', pa.string())
     ]
     df_schema = pa.schema(fields)
     pa_tbl = pa.Table.from_pandas(df, schema=df_schema, preserve_index=False)
