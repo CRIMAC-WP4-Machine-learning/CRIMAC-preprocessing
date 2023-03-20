@@ -139,7 +139,7 @@ def append_to_parquet(df, pq_filepath, pq_obj=None):
         pa.field('acoustic_category', pa.string()),
         pa.field('proportion', pa.float64()),
         pa.field('object_id', pa.string()),
-        pa.field('channel_id', pa.string())
+        pa.field('channel_id', pa.string()),
         pa.field('upperThreshold', pa.float64()),
         pa.field('lowerThreshold', pa.float64()),
         pa.field('raw_file', pa.string())
