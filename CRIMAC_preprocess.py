@@ -1394,4 +1394,4 @@ if __name__ == '__main__':
               RAW_FILE = os.getenv('RAW_FILE', 'nofile'),
               WRITE_PNG = os.getenv('WRITE_PNG', '0'),
               LOGGING = os.getenv('LOGGING', '1'),
-              DEBUGMODE = os.getenv('DEBUG', '1') )
+              DEBUGMODE = os.getenv('DEBUG', '0') )
