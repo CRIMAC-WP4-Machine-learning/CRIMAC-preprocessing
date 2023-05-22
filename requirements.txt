@@ -1,7 +1,9 @@
+xarray==0.20.0
+numpy==1.17.0
+zarr==2.8.1
 lxml
 pytz
 future
-zarr
 netCDF4
 dask[array]
 dask[delayed]
@@ -9,10 +11,8 @@ dask[distributed]
 dask[dataframe]
 pandas
 pyarrow
-xarray==0.20.0
 rechunker
 numcodecs
-numpy==1.17.0
 scipy
 matplotlib
 psutil
