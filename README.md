@@ -94,6 +94,9 @@ The output of this step is the parquet file: `<OUTPUT_NAME>_labels.parquet` and 
     --env OUTPUT_TYPE=zarr
 
     --env OUTPUT_TYPE=netcdf4
+    
+     #for step 3
+    --env OUTPUT_TYPE=labels.zarr 
     ```
 
 5. Select file name output (optional,  default to `out.<zarr/nc>`)
@@ -126,8 +129,16 @@ The output of this step is the parquet file: `<OUTPUT_NAME>_labels.parquet` and 
     ```bash
     --env DEBUG=1 # enable or 0 to disable
     ```
-
-#### Example step 1
+9. For step 3 : shipID is used in labels.zarr to annotate the objects. 
+parselayers=0 skips parsing layers. 
+parselayers=1 parses layers
+    
+```bash
+   --env shipID=837
+   --env parselayers=0 
+```
+    
+ #### Example step 1
 
 ```bash
 
@@ -159,6 +170,23 @@ docker run -it \
 --env MAX_RANGE_SRC=500 \
 --env OUTPUT_NAME=S2020842 \
 --env WRITE_PNG=0 \
+crimac/preprocessor
+
+```
+
+#### Example step 3
+
+```bash
+
+docker run -it \
+-v /data/cruise_data/2020/S2020842_PHELMERHANSSEN_1173/ACOUSTIC/EK60/EK60_RAWDATA:/datain \
+-v /data/cruise_data/2020/S2020842_PHELMERHANSSEN_1173/ACOUSTIC/LSSS/WORK:/workin \
+-v /localscratch/ibrahim-echo/out:/dataout \
+--security-opt label=disable \
+--env OUTPUT_TYPE=labels.zarr \
+--env shipID=837
+--env parselayers=0 
+--env OUTPUT_NAME=S2020842 \
 crimac/preprocessor
 
 ```
