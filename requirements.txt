@@ -9,10 +9,10 @@ dask[distributed]
 dask[dataframe]
 pandas
 pyarrow
-xarray=0.20.0
+xarray==0.20.0
 rechunker
 numcodecs
-numpy
+numpy==1.17.0
 scipy
 matplotlib
 psutil
