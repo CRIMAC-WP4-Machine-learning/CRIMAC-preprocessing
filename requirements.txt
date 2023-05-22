@@ -9,7 +9,7 @@ dask[distributed]
 dask[dataframe]
 pandas
 pyarrow
-xarray>=0.17.0
+xarray=0.20.0
 rechunker
 numcodecs
 numpy
