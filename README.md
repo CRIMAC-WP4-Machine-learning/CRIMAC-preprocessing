@@ -134,7 +134,7 @@ parselayers=0 skips parsing layers.
 parselayers=1 parses layers
     
 ```bash
-   --env shipID=837
+   --env shipID=842
    --env parselayers=0 
 ```
     
@@ -184,7 +184,7 @@ docker run -it \
 -v /localscratch/ibrahim-echo/out:/dataout \
 --security-opt label=disable \
 --env OUTPUT_TYPE=labels.zarr \
---env shipID=837
+--env shipID=842
 --env parselayers=0 
 --env OUTPUT_NAME=S2020842 \
 crimac/preprocessor
