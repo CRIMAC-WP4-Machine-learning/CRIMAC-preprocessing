@@ -51,6 +51,8 @@ from psutil import virtual_memory
 
 
 from annotationtools.crimactools.correct_distping import correct_parquet
+from annotationtools.crimactools.parseworkfiles import ParseWorkFiles
+from annotationtools.crimactools.writelabelszarr import WriteLabelsZarr
 from annotationtools import readers
 
 from rechunker.api import rechunk
@@ -1380,11 +1382,28 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
         os.system("mv " + out_name + "_pingdist.temp.parquet " + out_name + "_pingdist.parquet")
         correct_parquet(out_name + "_pingdist.parquet")
         
-        
+
+def writelabels(rawdir, workdir, outdir, OUTPUT_NAME, shipID='shipID', parselayers='0'):
+    pq_filepath=outdir + '/' + OUTPUT_NAME  +"_labels.parquet"
+    parser = ParseWorkFiles(rawdir=rawdir, workdir=workdir, pq_filepath=pq_filepath)
+    parser.run()
+    
+    svzarrfile= outdir + '/' + OUTPUT_NAME  +"_sv.zarr"
+    labelszarrfile= outdir + '/' + OUTPUT_NAME +"_labels.zarr"
+    labelsZarr = WriteLabelsZarr(shipID=shipID, svzarrfile=svzarrfile, parquetfile=pq_filepath, savefile=labelszarrfile, pingchunk=40000,  parselayers=0)
+    labelsZarr.run()
         
 if __name__ == '__main__':
-
-    parsedata(rawdir = os.path.expanduser("/datain"),
+    runtype = os.getenv('OUTPUT_TYPE', 'zarr')
+    if(runtype ==  "labels.zarr"):
+        writelabels(rawdir = os.path.expanduser("/datain"),
+              workdir = os.path.expanduser("/workin"),
+              outdir = os.path.expanduser("/dataout"),
+              OUTPUT_NAME = os.getenv('OUTPUT_NAME', 'out'),
+              shipID=os.getenv('shipID', 'shipID') ,
+              parselayers=os.getenv('parselayers', '0'))
+    else:
+        parsedata(rawdir = os.path.expanduser("/datain"),
               workdir = os.path.expanduser("/workin"),
               outdir = os.path.expanduser("/dataout"),
               OUTPUT_TYPE = os.getenv('OUTPUT_TYPE', 'zarr'),
