@@ -4,10 +4,10 @@ zarr==2.8.1
 pandas==1.5.3
 pyarrow==8.0.0
 rechunker
-dask[array]
-dask[delayed]
+dask[array]==2021.10.0 
+dask[dataframe]==2021.10.0 
+dask[delayed] 
 dask[distributed]
-dask[dataframe]
 lxml
 pytz
 future
