@@ -38,6 +38,8 @@ The output of this step is the Zarr/NetCDF file: `<OUTPUT_NAME>_sv.zarr` or `<OU
 
 This steps first convert Marec LSSS' work files into a parquet file containing the annotations using the CRIMAC-annotationtools. These data are independent of the gridded data in step 2. Next the data is overlayed on the grid from step 2, and a pixel wise annotation that matches the grid in step 2 is generated.
 
+To run step 3 use --env OUTPUT_TYPE=labels.zarr . In addition you have to set --env shipID=842 --env parselayers=0 . See details in the Example step 3 below
+
 The output of this step is the parquet file: `<OUTPUT_NAME>_labels.parquet` and the Zarr  file: `<OUTPUT_NAME>_labels.zarr`  .
 
 ## Features
