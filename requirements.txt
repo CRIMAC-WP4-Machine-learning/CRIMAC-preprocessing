@@ -2,6 +2,7 @@ xarray==0.20.0
 numpy==1.18.0
 zarr==2.8.1
 pandas==1.5.3
+pyarrow==8.0.0
 rechunker
 dask[array]
 dask[delayed]
@@ -11,7 +12,6 @@ lxml
 pytz
 future
 netCDF4
-pyarrow 
 numcodecs
 scipy
 matplotlib
