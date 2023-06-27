@@ -1384,11 +1384,12 @@ def parsedata(rawdir, workdir, outdir, OUTPUT_TYPE, OUTPUT_NAME, MAX_RANGE_SRC, 
         
 
 def writelabels(rawdir, workdir, outdir, OUTPUT_NAME, shipID='shipID', parselayers='0'):
+    svzarrfile= outdir + '/' + OUTPUT_NAME  +"_sv.zarr"
     pq_filepath=outdir + '/' + OUTPUT_NAME  +"_labels.parquet"
-    parser = ParseWorkFiles(rawdir=rawdir, workdir=workdir, pq_filepath=pq_filepath)
+    parser = ParseWorkFiles(rawdir=rawdir, workdir=workdir, pq_filepath=pq_filepath,svzarr_file=svzarrfile)
     parser.run()
     
-    svzarrfile= outdir + '/' + OUTPUT_NAME  +"_sv.zarr"
+    
     labelszarrfile= outdir + '/' + OUTPUT_NAME +"_labels.zarr"
     labelsZarr = WriteLabelsZarr(shipID=shipID, svzarrfile=svzarrfile, parquetfile=pq_filepath, savefile=labelszarrfile, pingchunk=40000,  parselayers=0)
     labelsZarr.run()
